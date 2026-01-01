@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { JurisdictionBadge } from '@/components/ui/JurisdictionBadge';
 import { Modal } from '@/components/ui/Modal';
+import { EmailComposer } from '@/components/ui/EmailComposer';
 import { Counsel, Jurisdiction, CounselStatus } from '@/lib/types';
-import { Mail, Phone, FileText, User, Plus, Search, MoreVertical } from 'lucide-react';
+import { Mail, Phone, FileText, User, Plus, Search, Send } from 'lucide-react';
 
 export default function CounselPage() {
-    const { counsel, tasks, emails, addCounsel, updateCounsel, deleteCounsel } = useData();
+    const { counsel, tasks, emails, addCounsel, updateCounsel, addEmail } = useData();
     const [selectedCounsel, setSelectedCounsel] = useState<Counsel | null>(null);
     const [showNewModal, setShowNewModal] = useState(false);
+    const [emailCounsel, setEmailCounsel] = useState<Counsel | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<CounselStatus | 'ALL'>('ALL');
     const [stateFilter, setStateFilter] = useState<Jurisdiction | 'ALL'>('ALL');
@@ -111,8 +113,8 @@ export default function CounselPage() {
                                             <div className="flex items-center gap-3 mb-1">
                                                 <h3 className="text-lg font-semibold text-white">{c.name}</h3>
                                                 <span className={`text-xs px-2 py-0.5 rounded ${c.status === 'Active' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                        c.status === 'Pending' ? 'bg-amber-500/20 text-amber-400' :
-                                                            'bg-slate-500/20 text-slate-400'
+                                                    c.status === 'Pending' ? 'bg-amber-500/20 text-amber-400' :
+                                                        'bg-slate-500/20 text-slate-400'
                                                     }`}>
                                                     {c.status}
                                                 </span>
@@ -155,9 +157,12 @@ export default function CounselPage() {
                                         <User className="w-3.5 h-3.5" />
                                         View Profile
                                     </button>
-                                    <button className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
-                                        <Mail className="w-3.5 h-3.5" />
-                                        Email History
+                                    <button
+                                        onClick={() => setEmailCounsel(c)}
+                                        className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                                    >
+                                        <Send className="w-3.5 h-3.5" />
+                                        Send Email
                                     </button>
                                     <button className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
                                         <FileText className="w-3.5 h-3.5" />
@@ -193,6 +198,26 @@ export default function CounselPage() {
                     onClose={() => setSelectedCounsel(null)}
                     tasks={getAssignedTasks(selectedCounsel)}
                     emails={getCounselEmails(selectedCounsel)}
+                />
+            )}
+            {/* Email Composer */}
+            {emailCounsel && (
+                <EmailComposer
+                    isOpen={true}
+                    onClose={() => setEmailCounsel(null)}
+                    recipientEmail={emailCounsel.email}
+                    recipientName={emailCounsel.name}
+                    onSend={(email) => {
+                        addEmail({
+                            subject: email.subject,
+                            summary: email.body.substring(0, 200),
+                            from: 'dashboard@gooddogg.com',
+                            to: email.to,
+                            date: new Date().toISOString().split('T')[0],
+                            type: 'OPPOSING_COUNSEL',
+                            linkedPartyIds: [emailCounsel.id]
+                        });
+                    }}
                 />
             )}
         </div>

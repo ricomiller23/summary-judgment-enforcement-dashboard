@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { JurisdictionBadge } from '@/components/ui/JurisdictionBadge';
+import { generateClientReport, generateTasksReport } from '@/lib/pdf-export';
 import { FileText, Download, Share, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -83,49 +84,18 @@ export default function ReportsPage() {
     };
 
     const handleGeneratePDF = () => {
-        // Create a print-friendly report
-        const reportContent = `
-GOOD DOGG BEVERAGE CO. v. MSH
-Summary Judgment Enforcement Report
-Generated: ${new Date().toLocaleDateString()}
+        generateClientReport({
+            caseConfig,
+            interest,
+            tasks,
+            counsel,
+            settlements,
+            jurisdictionStats
+        });
+    };
 
-═══════════════════════════════════════════════════
-
-EXECUTIVE SUMMARY
-─────────────────────────────────────────────────
-Total Judgment:     ${formatCurrency(caseConfig.judgmentAmount)}
-Interest Accrued:   ${formatCurrency(interest)}
-Total Owed:         ${formatCurrency(caseConfig.judgmentAmount + interest)}
-Best Offer:         ${formatCurrency(bestOffer)}
-Case Number:        ${caseConfig.caseNumber || 'N/A'}
-
-TASK PIPELINE
-─────────────────────────────────────────────────
-Open Tasks:         ${openTasks}
-Due This Week:      ${thisWeekTasks}
-Completed:          ${doneTasks} (${completionRate}%)
-
-JURISDICTION STATUS
-─────────────────────────────────────────────────
-${jurisdictionStats.map(j => `${j.jurisdiction}: ${j.openTasks} open | ${j.progress}% complete | ${j.phase}`).join('\n')}
-
-ACTIVE COUNSEL
-─────────────────────────────────────────────────
-${counsel.filter(c => c.status === 'Active').map(c => `${c.name} (${c.firm}) - ${c.state}`).join('\n') || 'None'}
-
-SETTLEMENT HISTORY
-─────────────────────────────────────────────────
-${settlements.length > 0
-                ? settlements.map(s => `${s.date}: ${formatCurrency(s.amount)} - ${s.status}`).join('\n')
-                : 'No settlement offers logged'}
-    `;
-
-        const blob = new Blob([reportContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'enforcement_report.txt';
-        a.click();
+    const handleGenerateTasksPDF = () => {
+        generateTasksReport(tasks);
     };
 
     return (
@@ -204,8 +174,23 @@ ${settlements.length > 0
                             <Download className="w-5 h-5 text-blue-400" />
                         </div>
                         <div>
-                            <h3 className="text-white font-medium">Tasks Export</h3>
-                            <p className="text-slate-500 text-sm">CSV with all tasks, status, deadlines</p>
+                            <h3 className="text-white font-medium">Tasks CSV</h3>
+                            <p className="text-slate-500 text-sm">Export all tasks with status, deadlines</p>
+                        </div>
+                    </div>
+                </button>
+
+                <button
+                    onClick={handleGenerateTasksPDF}
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-colors text-left group"
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-white font-medium">Tasks PDF</h3>
+                            <p className="text-slate-500 text-sm">Formatted PDF task report</p>
                         </div>
                     </div>
                 </button>
@@ -242,15 +227,15 @@ ${settlements.length > 0
 
                 <button
                     onClick={handleGeneratePDF}
-                    className="bg-slate-900 border border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-colors text-left group"
+                    className="bg-slate-900 border border-slate-700 rounded-xl p-5 hover:border-red-500/50 transition-colors text-left group"
                 >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
                             <FileText className="w-5 h-5 text-red-400" />
                         </div>
                         <div>
-                            <h3 className="text-white font-medium">Client Status Report</h3>
-                            <p className="text-slate-500 text-sm">Printable executive summary</p>
+                            <h3 className="text-white font-medium">Client Status Report (PDF)</h3>
+                            <p className="text-slate-500 text-sm">Professional PDF with charts</p>
                         </div>
                     </div>
                 </button>
