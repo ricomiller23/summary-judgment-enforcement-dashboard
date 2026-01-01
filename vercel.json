@@ -2,5 +2,21 @@
     "git": {
         "deploymentEnabled": true
     },
-    "framework": "nextjs"
+    "framework": "nextjs",
+    "functions": {
+        "api/**/*.js": {
+            "maxDuration": 30
+        }
+    },
+    "headers": [
+        {
+            "source": "/files/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=3600"
+                }
+            ]
+        }
+    ]
 }

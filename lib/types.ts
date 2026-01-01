@@ -28,6 +28,7 @@ export interface Task {
     priority?: Priority;
     linkedFileIds?: string[];
     linkedPartyIds?: string[];
+    assignedCounselId?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -45,6 +46,10 @@ export interface CaseFile {
     storageHint?: string;
     url?: string;
     notes?: string;
+    size?: number;
+    pages?: number;
+    text?: string;
+    excerpt?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -66,11 +71,61 @@ export interface EmailLog {
     linkedPartyIds?: string[];
 }
 
+// Counsel types
+export type CounselStatus = 'Active' | 'Pending' | 'Inactive';
+
+export interface Counsel {
+    id: string;
+    name: string;
+    firm: string;
+    address?: string;
+    state: Jurisdiction;
+    email: string;
+    phone?: string;
+    status: CounselStatus;
+    caseNumber?: string;
+    tasksAssigned: string[];
+    emailLog: string[];
+    lastContact: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Settlement types
+export type SettlementStatus = 'Review' | 'Countered' | 'Accepted' | 'Rejected';
+
+export interface SettlementOffer {
+    id: string;
+    date: string;
+    party: string;
+    amount: number;
+    terms: string;
+    status: SettlementStatus;
+    counterAmount?: number;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Case Configuration
+export interface CaseConfig {
+    judgmentAmount: number;
+    judgmentDate: string;
+    interestRate: number;
+    floorAmount: number;
+    caseNumber?: string;
+}
+
 // App state
 export interface AppData {
     parties: Party[];
     tasks: Task[];
     files: CaseFile[];
     emails: EmailLog[];
+    counsel: Counsel[];
+    settlements: SettlementOffer[];
+    caseConfig: CaseConfig;
     initialized: boolean;
+    darkMode: boolean;
 }

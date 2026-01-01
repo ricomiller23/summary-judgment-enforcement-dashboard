@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { JurisdictionBadge } from './JurisdictionBadge';
 import Link from 'next/link';
+import { Search, FileText, CheckSquare, Mail, User, X, Command } from 'lucide-react';
 
 interface SearchModalProps {
     isOpen: boolean;
@@ -16,7 +17,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     const { search } = useData();
 
     const results = query.length >= 2 ? search(query) : null;
-    const hasResults = results && (results.tasks.length > 0 || results.files.length > 0 || results.emails.length > 0 || results.parties.length > 0);
+    const hasResults = results && (
+        results.tasks.length > 0 ||
+        results.files.length > 0 ||
+        results.emails.length > 0 ||
+        results.parties.length > 0 ||
+        results.counsel.length > 0
+    );
 
     useEffect(() => {
         if (isOpen) {
@@ -55,28 +62,61 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             >
                 {/* Search Input */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700">
-                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    <Search className="w-5 h-5 text-slate-400" />
                     <input
                         ref={inputRef}
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search tasks, files, emails..."
+                        placeholder="Search tasks, files, emails, counsel..."
                         className="flex-1 bg-transparent text-white text-lg placeholder-slate-500 outline-none"
                     />
                     <kbd className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-400 border border-slate-700">ESC</kbd>
                 </div>
 
+                {/* Quick Actions */}
+                {!query && (
+                    <div className="p-3 border-b border-slate-800">
+                        <p className="px-2 py-1 text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Quick Actions</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Link
+                                href="/tasks"
+                                onClick={onClose}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                            >
+                                <span className="text-slate-400 text-sm">N</span>
+                                <span className="text-white text-sm">New Task</span>
+                            </Link>
+                            <Link
+                                href="/files"
+                                onClick={onClose}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                            >
+                                <span className="text-slate-400 text-sm">U</span>
+                                <span className="text-white text-sm">Upload Files</span>
+                            </Link>
+                            <Link
+                                href="/counsel"
+                                onClick={onClose}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                            >
+                                <span className="text-slate-400 text-sm">C</span>
+                                <span className="text-white text-sm">New Counsel</span>
+                            </Link>
+                            <Link
+                                href="/settle"
+                                onClick={onClose}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
+                            >
+                                <span className="text-slate-400 text-sm">S</span>
+                                <span className="text-white text-sm">Log Settlement</span>
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
                 {/* Results */}
                 <div className="max-h-96 overflow-y-auto">
-                    {query.length < 2 && (
-                        <div className="p-8 text-center text-slate-500">
-                            Type at least 2 characters to search...
-                        </div>
-                    )}
-
                     {query.length >= 2 && !hasResults && (
                         <div className="p-8 text-center text-slate-500">
                             No results found for &ldquo;{query}&rdquo;
@@ -96,9 +136,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
                                 >
                                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                        </svg>
+                                        <CheckSquare className="w-4 h-4 text-blue-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white text-sm font-medium truncate">{task.title}</p>
@@ -122,14 +160,40 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
                                 >
                                     <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
+                                        <FileText className="w-4 h-4 text-emerald-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white text-sm font-medium truncate">{file.title}</p>
+                                        {file.excerpt && (
+                                            <p className="text-slate-500 text-xs truncate">{file.excerpt.slice(0, 50)}...</p>
+                                        )}
                                     </div>
                                     {file.jurisdiction && <JurisdictionBadge jurisdiction={file.jurisdiction} size="sm" />}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
+                    {results && results.counsel.length > 0 && (
+                        <div className="p-3 border-t border-slate-800">
+                            <div className="px-2 py-1 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                                Counsel ({results.counsel.length})
+                            </div>
+                            {results.counsel.slice(0, 3).map((c) => (
+                                <Link
+                                    key={c.id}
+                                    href="/counsel"
+                                    onClick={onClose}
+                                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                                >
+                                    <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                        <User className="w-4 h-4 text-purple-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white text-sm font-medium truncate">{c.name}</p>
+                                        <p className="text-slate-500 text-xs truncate">{c.firm}</p>
+                                    </div>
+                                    <JurisdictionBadge jurisdiction={c.state} size="sm" />
                                 </Link>
                             ))}
                         </div>
@@ -147,10 +211,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                                     onClick={onClose}
                                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors"
                                 >
-                                    <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
+                                    <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                                        <Mail className="w-4 h-4 text-amber-400" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white text-sm font-medium truncate">{email.subject}</p>
@@ -159,6 +221,15 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1"><Command className="w-3 h-3" />K to toggle</span>
+                        <span>↑↓ to navigate</span>
+                        <span>↵ to select</span>
+                    </div>
                 </div>
             </div>
         </div>

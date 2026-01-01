@@ -1,6 +1,14 @@
-import { Party, Task, CaseFile, EmailLog } from './types';
+import { Party, Task, CaseFile, EmailLog, Counsel, SettlementOffer, CaseConfig } from './types';
 
 const now = new Date().toISOString();
+
+export const seedCaseConfig: CaseConfig = {
+    judgmentAmount: 2378443.28,
+    judgmentDate: '2025-11-25',
+    interestRate: 10, // FL statutory rate
+    floorAmount: 1800000,
+    caseNumber: '05-2024-CA-050807'
+};
 
 export const seedParties: Party[] = [
     {
@@ -33,6 +41,26 @@ export const seedParties: Party[] = [
     }
 ];
 
+export const seedCounsel: Counsel[] = [
+    {
+        id: 'c1',
+        name: 'Josh A. Porteous',
+        firm: 'Widerman Malek, PL',
+        address: 'Melbourne, FL',
+        state: 'FL',
+        email: 'jporteous@uslegalteam.com',
+        phone: '(321) 255-2332',
+        status: 'Active',
+        caseNumber: '05-2024-CA-050807',
+        tasksAssigned: ['t1', 't2'],
+        emailLog: ['e1', 'e2'],
+        lastContact: '2025-11-26',
+        notes: 'Lead counsel on FL enforcement',
+        createdAt: now,
+        updatedAt: now
+    }
+];
+
 export const seedFiles: CaseFile[] = [
     {
         id: 'f1',
@@ -41,6 +69,7 @@ export const seedFiles: CaseFile[] = [
         jurisdiction: 'FL',
         date: '2024-10-15',
         notes: 'Original complaint filed in Brevard County, FL',
+        excerpt: 'Breach of settlement agreement between Good Dogg Beverage Company and MSH...',
         createdAt: now,
         updatedAt: now
     },
@@ -71,6 +100,7 @@ export const seedFiles: CaseFile[] = [
         jurisdiction: 'FL',
         date: '2025-11-25',
         notes: 'Default Final Judgment - $2,378,443.28',
+        excerpt: 'Default Final Judgment awarding $2,378,443.28 to Plaintiff Good Dogg Beverage Company...',
         createdAt: now,
         updatedAt: now
     },
@@ -81,6 +111,7 @@ export const seedFiles: CaseFile[] = [
         jurisdiction: 'IN',
         date: '2023-11-16',
         notes: 'Affidavit related to Indiana principal',
+        excerpt: 'McClung control and ownership of MSH operations...',
         createdAt: now,
         updatedAt: now
     }
@@ -97,6 +128,7 @@ export const seedTasks: Task[] = [
         priority: 'HIGH',
         dueDate: '2026-01-15',
         linkedFileIds: ['f2'],
+        assignedCounselId: 'c1',
         createdAt: now,
         updatedAt: now
     },
@@ -109,6 +141,7 @@ export const seedTasks: Task[] = [
         status: 'THIS_WEEK',
         priority: 'HIGH',
         linkedFileIds: ['f4'],
+        assignedCounselId: 'c1',
         createdAt: now,
         updatedAt: now
     },
@@ -193,7 +226,7 @@ export const seedEmails: EmailLog[] = [
         id: 'e1',
         subject: 'Re: Default Final Judgment Entered - Good Dogg v. MSH',
         summary: 'Notification to client regarding entry of default final judgment for $2,378,443.28',
-        from: 'counsel@firm.com',
+        from: 'jporteous@uslegalteam.com',
         to: 'client@gooddogg.com',
         date: '2025-11-26',
         type: 'CLIENT',
@@ -205,7 +238,7 @@ export const seedEmails: EmailLog[] = [
         id: 'e2',
         subject: 'Domestication Strategy - TN/IN/CO',
         summary: 'Strategy memo outlining multi-state domestication and enforcement approach',
-        from: 'counsel@firm.com',
+        from: 'jporteous@uslegalteam.com',
         to: 'client@gooddogg.com',
         date: '2025-12-15',
         type: 'CLIENT',
@@ -216,7 +249,7 @@ export const seedEmails: EmailLog[] = [
         subject: 'MSH Principal Investigation Update',
         summary: 'Update on investigation into MSH principals in Indiana and Colorado',
         from: 'investigator@vendor.com',
-        to: 'counsel@firm.com',
+        to: 'jporteous@uslegalteam.com',
         date: '2025-12-20',
         type: 'VENDOR',
         jurisdiction: 'IN',
@@ -224,3 +257,5 @@ export const seedEmails: EmailLog[] = [
         linkedPartyIds: ['p3', 'p4']
     }
 ];
+
+export const seedSettlements: SettlementOffer[] = [];
