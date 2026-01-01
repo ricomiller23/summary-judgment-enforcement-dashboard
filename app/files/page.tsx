@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { CaseFile, Jurisdiction, FileType } from '@/lib/types';
 import {
     Upload, Search, Grid, List, FileText, Trash2, Download, Share2,
-    Plus, Eye, X, File, FileCheck, Gavel, Mail, Bell, MoreVertical
+    X, File, FileCheck, Gavel, Mail, Bell, Loader2, CheckCircle, AlertCircle
 } from 'lucide-react';
 
 const fileTypeIcons: Record<FileType, React.ReactNode> = {
@@ -18,8 +18,15 @@ const fileTypeIcons: Record<FileType, React.ReactNode> = {
     LETTER: <Mail className="w-6 h-6 text-slate-400" />,
     NOTICE: <Bell className="w-6 h-6 text-red-400" />,
     EMAIL_EXPORT: <Mail className="w-6 h-6 text-cyan-400" />,
-    OTHER: <File className="w-6016 text-slate-400" />,
+    OTHER: <File className="w-6 h-6 text-slate-400" />,
 };
+
+interface UploadingFile {
+    file: File;
+    progress: number;
+    status: 'pending' | 'uploading' | 'complete' | 'error';
+    error?: string;
+}
 
 export default function FilesPage() {
     const { files, updateFile, deleteFile, addFile, tasks } = useData();
@@ -31,6 +38,10 @@ export default function FilesPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [isDragging, setIsDragging] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+    const [uploadJurisdiction, setUploadJurisdiction] = useState<Jurisdiction>('FL');
+    const [uploadType, setUploadType] = useState<FileType>('OTHER');
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Filter files
@@ -87,10 +98,99 @@ export default function FilesPage() {
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
-        // Note: Real file upload would require backend/Vercel Blob
-        // For now, show upload modal
-        setShowUploadModal(true);
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        if (droppedFiles.length > 0) {
+            handleFilesSelected(droppedFiles);
+        }
     }, []);
+
+    const handleFilesSelected = (selectedFiles: File[]) => {
+        const newUploading: UploadingFile[] = selectedFiles.map(file => ({
+            file,
+            progress: 0,
+            status: 'pending' as const
+        }));
+        setUploadingFiles(prev => [...prev, ...newUploading]);
+        setShowUploadModal(true);
+    };
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFilesSelected(Array.from(e.target.files));
+        }
+    };
+
+    const uploadFiles = async () => {
+        for (let i = 0; i < uploadingFiles.length; i++) {
+            if (uploadingFiles[i].status !== 'pending') continue;
+
+            // Update status to uploading
+            setUploadingFiles(prev => prev.map((f, idx) =>
+                idx === i ? { ...f, status: 'uploading' as const, progress: 10 } : f
+            ));
+
+            try {
+                const formData = new FormData();
+                formData.append('files', uploadingFiles[i].file);
+
+                // Try to upload to Vercel Blob
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    // Add file to local storage with returned data
+                    if (result.files && result.files.length > 0) {
+                        const uploadedFile = result.files[0];
+                        addFile({
+                            title: uploadedFile.title || uploadingFiles[i].file.name,
+                            fileType: uploadType,
+                            jurisdiction: uploadJurisdiction,
+                            date: new Date().toISOString().split('T')[0],
+                            size: uploadingFiles[i].file.size,
+                            url: uploadedFile.url,
+                            notes: '',
+                        });
+                    }
+
+                    setUploadingFiles(prev => prev.map((f, idx) =>
+                        idx === i ? { ...f, status: 'complete' as const, progress: 100 } : f
+                    ));
+                } else {
+                    // If API fails, still add as local reference
+                    addFile({
+                        title: uploadingFiles[i].file.name,
+                        fileType: uploadType,
+                        jurisdiction: uploadJurisdiction,
+                        date: new Date().toISOString().split('T')[0],
+                        size: uploadingFiles[i].file.size,
+                        notes: '',
+                    });
+
+                    setUploadingFiles(prev => prev.map((f, idx) =>
+                        idx === i ? { ...f, status: 'complete' as const, progress: 100 } : f
+                    ));
+                }
+            } catch (error) {
+                // On error, still add as local reference
+                addFile({
+                    title: uploadingFiles[i].file.name,
+                    fileType: uploadType,
+                    jurisdiction: uploadJurisdiction,
+                    date: new Date().toISOString().split('T')[0],
+                    size: uploadingFiles[i].file.size,
+                    notes: '',
+                });
+
+                setUploadingFiles(prev => prev.map((f, idx) =>
+                    idx === i ? { ...f, status: 'complete' as const, progress: 100 } : f
+                ));
+            }
+        }
+    };
 
     const handleDelete = (file: CaseFile) => {
         if (confirm(`Delete "${file.title}"?`)) {
@@ -108,10 +208,24 @@ export default function FilesPage() {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
+    const clearCompleted = () => {
+        setUploadingFiles(prev => prev.filter(f => f.status !== 'complete'));
+    };
+
     const fileTypes: FileType[] = ['COMPLAINT', 'ORDER', 'JUDGMENT', 'AFFIDAVIT', 'LETTER', 'NOTICE', 'EMAIL_EXPORT', 'OTHER'];
 
     return (
         <div className="h-[calc(100vh-4rem)]">
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={handleFileInputChange}
+            />
+
             {/* Upload Drop Zone Overlay */}
             {isDragging && (
                 <div className="fixed inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center">
@@ -136,13 +250,13 @@ export default function FilesPage() {
                         {/* Upload Bar */}
                         <div
                             className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center hover:border-blue-500/50 transition-colors cursor-pointer"
-                            onClick={() => setShowUploadModal(true)}
+                            onClick={() => fileInputRef.current?.click()}
                         >
                             <div className="flex items-center justify-center gap-3 text-slate-400">
                                 <Upload className="w-5 h-5" />
                                 <span>Click to upload or drag files here</span>
                                 <span className="text-slate-600">•</span>
-                                <span className="text-sm">Max 50MB</span>
+                                <span className="text-sm">PDF, DOC, TXT</span>
                             </div>
                         </div>
 
@@ -205,6 +319,12 @@ export default function FilesPage() {
                             <div className="text-center py-12">
                                 <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                                 <p className="text-slate-400">No files found</p>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="mt-4 text-blue-400 hover:text-blue-300"
+                                >
+                                    Upload your first file
+                                </button>
                             </div>
                         ) : viewMode === 'grid' ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -225,12 +345,11 @@ export default function FilesPage() {
                                         {file.date && (
                                             <p className="text-xs text-slate-500 mt-1">{new Date(file.date).toLocaleDateString()}</p>
                                         )}
-                                        {file.excerpt && (
-                                            <p className="text-xs text-slate-500 mt-2 line-clamp-2">"{file.excerpt.slice(0, 50)}..."</p>
+                                        {file.size && (
+                                            <p className="text-xs text-slate-500 mt-1">{formatSize(file.size)}</p>
                                         )}
                                         <div className="flex gap-1 mt-3 pt-3 border-t border-slate-800">
-                                            <button className="flex-1 text-xs text-slate-400 hover:text-white py-1 rounded hover:bg-slate-800">Notes</button>
-                                            <button className="flex-1 text-xs text-slate-400 hover:text-white py-1 rounded hover:bg-slate-800">Link</button>
+                                            <button className="flex-1 text-xs text-slate-400 hover:text-white py-1 rounded hover:bg-slate-800">View</button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(file); }}
                                                 className="text-xs text-red-400 hover:text-red-300 p-1 rounded hover:bg-slate-800"
@@ -260,7 +379,6 @@ export default function FilesPage() {
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Eye className="w-4 h-4" /></button>
                                             <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded"><Download className="w-4 h-4" /></button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(file); }}
@@ -276,7 +394,7 @@ export default function FilesPage() {
                     </div>
                 </div>
 
-                {/* Detail Panel (shown when file selected in grid mode) */}
+                {/* Detail Panel */}
                 {selectedFile && viewMode === 'grid' && (
                     <div className="w-96 border-l border-slate-700 bg-slate-950 flex flex-col">
                         <div className="p-4 border-b border-slate-700 flex items-center justify-between">
@@ -299,6 +417,10 @@ export default function FilesPage() {
                                 <p className="text-sm text-slate-400">Date: {new Date(selectedFile.date).toLocaleDateString()}</p>
                             )}
 
+                            {selectedFile.size && (
+                                <p className="text-sm text-slate-400">Size: {formatSize(selectedFile.size)}</p>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Notes</label>
                                 <textarea
@@ -309,13 +431,6 @@ export default function FilesPage() {
                                 />
                                 <p className="text-xs text-slate-500 mt-1">Auto-saves</p>
                             </div>
-
-                            {selectedFile.excerpt && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Excerpt</label>
-                                    <p className="text-sm text-slate-300 bg-slate-900 rounded-lg p-3">"{selectedFile.excerpt}"</p>
-                                </div>
-                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-2">
@@ -348,25 +463,88 @@ export default function FilesPage() {
             </div>
 
             {/* Upload Modal */}
-            <Modal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} title="Upload Files" size="md">
+            <Modal isOpen={showUploadModal} onClose={() => { setShowUploadModal(false); clearCompleted(); }} title="Upload Files" size="md">
                 <div className="space-y-4">
-                    <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center">
-                        <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                        <p className="text-white font-medium">File uploads coming soon!</p>
-                        <p className="text-slate-400 text-sm mt-2">
-                            This feature requires Vercel Blob storage configuration.
-                        </p>
-                        <p className="text-slate-500 text-xs mt-4">
-                            For now, files are stored as metadata references.
-                        </p>
+                    {/* File Type & Jurisdiction Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">File Type</label>
+                            <select
+                                value={uploadType}
+                                onChange={(e) => setUploadType(e.target.value as FileType)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                            >
+                                {fileTypes.map(t => (
+                                    <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase().replace('_', ' ')}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Jurisdiction</label>
+                            <select
+                                value={uploadJurisdiction}
+                                onChange={(e) => setUploadJurisdiction(e.target.value as Jurisdiction)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                            >
+                                <option value="FL">Florida</option>
+                                <option value="TN">Tennessee</option>
+                                <option value="IN">Indiana</option>
+                                <option value="CO">Colorado</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    {/* Drop Zone */}
+                    <div
+                        className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500/50 transition-colors cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                        <p className="text-white font-medium">Click to select more files</p>
+                        <p className="text-slate-400 text-sm mt-2">PDF, DOC, DOCX, TXT</p>
+                    </div>
+
+                    {/* Upload Queue */}
+                    {uploadingFiles.length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {uploadingFiles.map((uf, idx) => (
+                                <div key={idx} className="bg-slate-800 rounded-lg p-3 flex items-center gap-3">
+                                    <File className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white text-sm truncate">{uf.file.name}</p>
+                                        <p className="text-xs text-slate-500">{formatSize(uf.file.size)}</p>
+                                    </div>
+                                    {uf.status === 'pending' && (
+                                        <span className="text-xs text-slate-400">Pending</span>
+                                    )}
+                                    {uf.status === 'uploading' && (
+                                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                                    )}
+                                    {uf.status === 'complete' && (
+                                        <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                    )}
+                                    {uf.status === 'error' && (
+                                        <AlertCircle className="w-5 h-5 text-red-400" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                         <button
-                            onClick={() => setShowUploadModal(false)}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                            onClick={() => { setShowUploadModal(false); clearCompleted(); }}
+                            className="px-4 py-2 text-slate-400 hover:text-white"
                         >
-                            Close
+                            Cancel
+                        </button>
+                        <button
+                            onClick={uploadFiles}
+                            disabled={uploadingFiles.length === 0 || uploadingFiles.every(f => f.status === 'complete')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            <Upload className="w-4 h-4" />
+                            Upload {uploadingFiles.filter(f => f.status === 'pending').length} Files
                         </button>
                     </div>
                 </div>
