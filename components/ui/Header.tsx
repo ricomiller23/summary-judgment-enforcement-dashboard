@@ -15,12 +15,16 @@ export function Header({ onSearchClick }: HeaderProps) {
 
     const navItems = [
         { href: '/', label: 'Overview' },
-        { href: '/enforcement', label: 'Enforcement' },
-        { href: '/tasks', label: 'Tasks' },
-        { href: '/files', label: 'Files' },
-        { href: '/counsel', label: 'Counsel' },
+        { href: '/assets', label: 'Assets' },
+        { href: '/enforcement', label: 'Enforce' },
+        { href: '/documents', label: 'Docs' },
+        { href: '/jurisdictions', label: 'States' },
+        { href: '/liens', label: 'Liens' },
+        { href: '/bankruptcy', label: 'BK Defense' },
+        { href: '/strategy', label: 'Strategy' },
+        { href: '/examination', label: 'Exam' },
         { href: '/settle', label: 'Settle' },
-        { href: '/emails', label: 'Emails' },
+        { href: '/tasks', label: 'Tasks' },
         { href: '/reports', label: 'Reports' },
     ];
 
@@ -45,8 +49,8 @@ export function Header({ onSearchClick }: HeaderProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                 >
                                     {item.label}
@@ -87,8 +91,8 @@ export function Header({ onSearchClick }: HeaderProps) {
                                 key={item.href}
                                 href={item.href}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 {item.label}

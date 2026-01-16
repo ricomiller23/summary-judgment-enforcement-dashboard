@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useMemo } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import { AppData, Party, Task, CaseFile, EmailLog, TaskStatus, Counsel, SettlementOffer, CaseConfig } from '../types';
+import {
+    AppData, Party, Task, CaseFile, EmailLog, TaskStatus, Counsel, SettlementOffer, CaseConfig,
+    Alert, AlertStatus, AssetIntelligence, EnforcementAction, CollectionRecord, JudgmentLien
+} from '../types';
 import { seedParties, seedFiles, seedTasks, seedEmails, seedCounsel, seedSettlements, seedCaseConfig } from '../seed-data';
+import { seedAssetIntelligence, seedEnforcementActions, seedAlerts, seedCollections, seedJudgmentLiens } from '../seed-assets';
 
 const STORAGE_KEY = 'sjed-app-data';
 
@@ -16,7 +20,15 @@ const initialData: AppData = {
     settlements: [],
     caseConfig: seedCaseConfig,
     initialized: false,
-    darkMode: true
+    darkMode: true,
+    // New extended data
+    alerts: [],
+    assetIntelligence: undefined,
+    enforcementActions: [],
+    collections: [],
+    judgmentLiens: [],
+    uccFilings: [],
+    lastDataRefresh: new Date().toISOString()
 };
 
 export function useData() {
@@ -34,7 +46,15 @@ export function useData() {
                 settlements: seedSettlements,
                 caseConfig: seedCaseConfig,
                 initialized: true,
-                darkMode: true
+                darkMode: true,
+                // New extended data
+                alerts: seedAlerts,
+                assetIntelligence: seedAssetIntelligence,
+                enforcementActions: seedEnforcementActions,
+                collections: seedCollections,
+                judgmentLiens: seedJudgmentLiens,
+                uccFilings: [],
+                lastDataRefresh: new Date().toISOString()
             });
         }
     }, [data.initialized, setData]);
@@ -57,6 +77,46 @@ export function useData() {
         const dailyRate = data.caseConfig.interestRate / 100 / 365;
         return data.caseConfig.judgmentAmount * dailyRate * daysElapsed;
     }, [data.caseConfig]);
+
+    // Get days since judgment
+    const getDaysSinceJudgment = useMemo(() => {
+        const judgmentDate = new Date(data.caseConfig.judgmentDate);
+        const today = new Date();
+        return Math.floor((today.getTime() - judgmentDate.getTime()) / (1000 * 60 * 60 * 24));
+    }, [data.caseConfig.judgmentDate]);
+
+    // Get daily interest rate
+    const getDailyInterest = useMemo(() => {
+        const dailyRate = data.caseConfig.interestRate / 100 / 365;
+        return data.caseConfig.judgmentAmount * dailyRate;
+    }, [data.caseConfig]);
+
+    // Get total amount collected
+    const getAmountCollected = useMemo(() => {
+        return data.collections.reduce((sum, c) => sum + c.amount, 0);
+    }, [data.collections]);
+
+    // Get outstanding balance
+    const getOutstandingBalance = useMemo(() => {
+        const interest = calculateInterest();
+        const collected = data.collections.reduce((sum, c) => sum + c.amount, 0);
+        return data.caseConfig.judgmentAmount + interest - collected;
+    }, [data.caseConfig.judgmentAmount, calculateInterest, data.collections]);
+
+    // Get recovery probability score
+    const getRecoveryProbability = useMemo(() => {
+        return data.assetIntelligence?.recoveryProbability?.score ?? 0;
+    }, [data.assetIntelligence]);
+
+    // Get total known assets
+    const getTotalKnownAssets = useMemo(() => {
+        if (!data.assetIntelligence) return 0;
+        const ai = data.assetIntelligence;
+        const realPropertyEquity = ai.realProperty.reduce((sum, p) => sum + p.equity, 0);
+        const bankBalances = ai.bankAccounts.reduce((sum, b) => sum + (b.lastKnownBalance ?? 0), 0);
+        const vehicleEquity = ai.vehicles.reduce((sum, v) => sum + (v.estimatedValue - v.loanBalance), 0);
+        return realPropertyEquity + bankBalances + vehicleEquity;
+    }, [data.assetIntelligence]);
 
     // Party CRUD
     const addParty = useCallback((party: Omit<Party, 'id'>) => {
@@ -193,6 +253,69 @@ export function useData() {
         setData(prev => ({ ...prev, settlements: prev.settlements.filter(s => s.id !== id) }));
     }, [setData]);
 
+    // ============================================
+    // NEW: Alert Management
+    // ============================================
+    const dismissAlert = useCallback((id: string) => {
+        setData(prev => ({
+            ...prev,
+            alerts: prev.alerts.map(a => a.id === id ? { ...a, status: 'DISMISSED' as AlertStatus } : a)
+        }));
+    }, [setData]);
+
+    const snoozeAlert = useCallback((id: string, until: string) => {
+        setData(prev => ({
+            ...prev,
+            alerts: prev.alerts.map(a => a.id === id ? { ...a, status: 'SNOOZED' as AlertStatus, snoozedUntil: until } : a)
+        }));
+    }, [setData]);
+
+    const addAlert = useCallback((alert: Omit<Alert, 'id' | 'createdAt'>) => {
+        const newAlert: Alert = { ...alert, id: `alert${Date.now()}`, createdAt: new Date().toISOString() };
+        setData(prev => ({ ...prev, alerts: [...prev.alerts, newAlert] }));
+        return newAlert;
+    }, [setData]);
+
+    // ============================================
+    // NEW: Enforcement Action Management
+    // ============================================
+    const addEnforcementAction = useCallback((action: Omit<EnforcementAction, 'id' | 'createdAt' | 'updatedAt'>) => {
+        const now = new Date().toISOString();
+        const newAction: EnforcementAction = { ...action, id: `ea${Date.now()}`, createdAt: now, updatedAt: now };
+        setData(prev => ({ ...prev, enforcementActions: [...prev.enforcementActions, newAction] }));
+        return newAction;
+    }, [setData]);
+
+    const updateEnforcementAction = useCallback((id: string, updates: Partial<EnforcementAction>) => {
+        setData(prev => ({
+            ...prev,
+            enforcementActions: prev.enforcementActions.map(a =>
+                a.id === id ? { ...a, ...updates, updatedAt: new Date().toISOString() } : a
+            )
+        }));
+    }, [setData]);
+
+    // ============================================
+    // NEW: Collection Management
+    // ============================================
+    const addCollection = useCallback((collection: Omit<CollectionRecord, 'id'>) => {
+        const newCollection: CollectionRecord = { ...collection, id: `col${Date.now()}` };
+        setData(prev => ({ ...prev, collections: [...prev.collections, newCollection] }));
+        return newCollection;
+    }, [setData]);
+
+    // ============================================
+    // NEW: Asset Intelligence
+    // ============================================
+    const updateAssetIntelligence = useCallback((updates: Partial<AssetIntelligence>) => {
+        setData(prev => ({
+            ...prev,
+            assetIntelligence: prev.assetIntelligence
+                ? { ...prev.assetIntelligence, ...updates, lastUpdated: new Date().toISOString() }
+                : undefined
+        }));
+    }, [setData]);
+
     // Search across all entities including file content
     const search = useCallback((query: string) => {
         const q = query.toLowerCase();
@@ -281,6 +404,16 @@ export function useData() {
         return data.counsel.find(c => c.id === id);
     }, [data.counsel]);
 
+    // Get active alerts count
+    const getActiveAlertsCount = useMemo(() => {
+        return data.alerts.filter(a => a.status === 'ACTIVE').length;
+    }, [data.alerts]);
+
+    // Refresh data timestamp
+    const refreshData = useCallback(() => {
+        setData(prev => ({ ...prev, lastDataRefresh: new Date().toISOString() }));
+    }, [setData]);
+
     return {
         data,
         darkMode: data.darkMode,
@@ -288,18 +421,41 @@ export function useData() {
         caseConfig: data.caseConfig,
         updateCaseConfig,
         calculateInterest,
+        // New computed values
+        getDaysSinceJudgment,
+        getDailyInterest,
+        getAmountCollected,
+        getOutstandingBalance,
+        getRecoveryProbability,
+        getTotalKnownAssets,
+        getActiveAlertsCount,
+        // Existing entities
         parties: data.parties,
         tasks: data.tasks,
         files: data.files,
         emails: data.emails,
         counsel: data.counsel,
         settlements: data.settlements,
+        // New entities
+        alerts: data.alerts,
+        assetIntelligence: data.assetIntelligence,
+        enforcementActions: data.enforcementActions,
+        collections: data.collections,
+        judgmentLiens: data.judgmentLiens,
+        lastDataRefresh: data.lastDataRefresh,
+        // CRUD operations
         addParty, updateParty, deleteParty,
         addTask, updateTask, updateTaskStatus, deleteTask, assignTaskToCounsel,
         addFile, updateFile, deleteFile,
         addEmail, updateEmail, deleteEmail,
         addCounsel, updateCounsel, deleteCounsel,
         addSettlement, updateSettlement, deleteSettlement,
+        // New CRUD operations
+        dismissAlert, snoozeAlert, addAlert,
+        addEnforcementAction, updateEnforcementAction,
+        addCollection,
+        updateAssetIntelligence,
+        // Queries
         search,
         getTasksByStatus,
         getPriorityTasks,
@@ -307,6 +463,7 @@ export function useData() {
         getOverdueTasks,
         getThisWeekTasks,
         getBestOffer,
-        getCounselById
+        getCounselById,
+        refreshData
     };
 }

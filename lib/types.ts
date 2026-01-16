@@ -117,7 +117,277 @@ export interface CaseConfig {
     caseNumber?: string;
 }
 
-// App state
+// ============================================
+// NEW: Alert System Types
+// ============================================
+export type AlertType = 'COURT' | 'COLLECTION' | 'ASSET_INTEL' | 'FINANCIAL' | 'ADMINISTRATIVE';
+export type AlertPriority = 'CRITICAL' | 'IMPORTANT' | 'INFORMATIONAL';
+export type AlertStatus = 'ACTIVE' | 'SNOOZED' | 'DISMISSED' | 'ACTIONED';
+
+export interface Alert {
+    id: string;
+    type: AlertType;
+    priority: AlertPriority;
+    title: string;
+    description: string;
+    actionLabel?: string;
+    actionHref?: string;
+    dueDate?: string;
+    status: AlertStatus;
+    snoozedUntil?: string;
+    createdAt: string;
+    relatedEntityId?: string;
+    relatedEntityType?: 'task' | 'file' | 'settlement' | 'counsel' | 'asset';
+}
+
+// ============================================
+// NEW: Asset Intelligence Types
+// ============================================
+export interface RealProperty {
+    id: string;
+    address: string;
+    county: string;
+    state: Jurisdiction;
+    assessedValue: number;
+    mortgageBalance: number;
+    equity: number;
+    homesteadExemption: boolean;
+    lienFiled: boolean;
+    lienFileDate?: string;
+    lienNumber?: string;
+    transferHistory: PropertyTransfer[];
+}
+
+export interface PropertyTransfer {
+    date: string;
+    toWhom: string;
+    consideration: number;
+    suspicious: boolean;
+}
+
+export interface BankAccount {
+    id: string;
+    institution: string;
+    accountType: 'checking' | 'savings' | 'business' | 'investment';
+    status: 'confirmed' | 'suspected' | 'garnished' | 'closed';
+    lastKnownBalance?: number;
+    garnishmentHistory: GarnishmentResult[];
+}
+
+export interface GarnishmentResult {
+    date: string;
+    amountCollected: number;
+    writsId?: string;
+}
+
+export interface Vehicle {
+    id: string;
+    vin: string;
+    makeModel: string;
+    year: number;
+    estimatedValue: number;
+    lienholder?: string;
+    loanBalance: number;
+    status: 'located' | 'seized' | 'sold' | 'unknown';
+}
+
+export interface BusinessInterest {
+    id: string;
+    entityName: string;
+    entityType: 'LLC' | 'Corporation' | 'Partnership' | 'SoleProp';
+    ownershipPct: number;
+    stateOfFormation: string;
+    status: 'active' | 'dissolved' | 'suspended';
+    annualRevenueEstimate?: number;
+    keyCustomers: string[];
+}
+
+export interface OtherCreditor {
+    id: string;
+    creditorName: string;
+    lienDate: string;
+    amount: number;
+    priorityPosition: number;
+    securedBy: string;
+}
+
+export interface SocialIntel {
+    id: string;
+    platform: string;
+    url: string;
+    datePosted: string;
+    relevance: 'HIGH' | 'MEDIUM' | 'LOW';
+    notes: string;
+}
+
+export interface RecoveryProbability {
+    score: number; // 0-100
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+    factors: {
+        assetScore: number;
+        liquidityScore: number;
+        cooperationScore: number;
+        legalExposureScore: number;
+    };
+    lastUpdated: string;
+}
+
+export interface AssetIntelligence {
+    debtorId: string;
+    debtorName: string;
+    ssn?: string; // encrypted
+    ein?: string;
+    dob?: string;
+    currentAddress?: string;
+    addresses: DebtorAddress[];
+    phones: string[];
+    emails: string[];
+    employmentHistory: Employment[];
+    knownAssociates: string[];
+    realProperty: RealProperty[];
+    bankAccounts: BankAccount[];
+    vehicles: Vehicle[];
+    businessInterests: BusinessInterest[];
+    otherCreditors: OtherCreditor[];
+    socialIntel: SocialIntel[];
+    recoveryProbability: RecoveryProbability;
+    lastUpdated: string;
+}
+
+export interface DebtorAddress {
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    verifiedDate?: string;
+    source?: string;
+    isCurrent: boolean;
+}
+
+export interface Employment {
+    employer: string;
+    position?: string;
+    address?: string;
+    phone?: string;
+    salary?: number;
+    startDate?: string;
+    endDate?: string;
+    isCurrent: boolean;
+}
+
+// ============================================
+// NEW: Enforcement Action Types
+// ============================================
+export type EnforcementActionType =
+    | 'wage_garnishment'
+    | 'bank_levy'
+    | 'ar_garnishment'
+    | 'execution'
+    | 'charging_order'
+    | 'receivership'
+    | 'fraudulent_transfer'
+    | 'contempt';
+
+export type EnforcementStatus =
+    | 'planned'
+    | 'filed'
+    | 'served'
+    | 'pending_response'
+    | 'active'
+    | 'collected'
+    | 'terminated';
+
+export interface EnforcementTarget {
+    name: string;
+    type: 'employer' | 'bank' | 'customer' | 'sheriff' | 'llc' | 'receiver' | 'transferee';
+    address?: string;
+    phone?: string;
+    email?: string;
+}
+
+export interface EnforcementAction {
+    id: string;
+    caseId: string;
+    actionType: EnforcementActionType;
+    status: EnforcementStatus;
+    jurisdiction: Jurisdiction;
+    dateInitiated: string;
+    documentsGenerated: string[];
+    target: EnforcementTarget;
+    servedDate?: string;
+    responseDueDate?: string;
+    costsIncurred: number;
+    amountCollected: number;
+    expectedRecovery: number;
+    timeline: EnforcementTimelineEvent[];
+    complianceStatus: 'compliant' | 'non_responsive' | 'resisting';
+    nextAction?: string;
+    nextActionDate?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface EnforcementTimelineEvent {
+    date: string;
+    event: string;
+    notes?: string;
+    documents?: string[];
+}
+
+// ============================================
+// NEW: Collection Tracking Types
+// ============================================
+export interface CollectionRecord {
+    id: string;
+    date: string;
+    source: 'garnishment' | 'levy' | 'settlement' | 'voluntary' | 'auction';
+    amount: number;
+    enforcementActionId?: string;
+    appliedTo: {
+        principal: number;
+        interest: number;
+        costs: number;
+    };
+    notes?: string;
+}
+
+// ============================================
+// NEW: Lien Registry Types
+// ============================================
+export interface JudgmentLien {
+    id: string;
+    jurisdiction: string;
+    propertyAddress?: string;
+    lienFileDate: string;
+    lienNumber: string;
+    recordingOffice: string;
+    amountAtFiling: number;
+    currentAmount: number;
+    expirationDate: string;
+    renewalHistory: LienRenewal[];
+    status: 'active' | 'expired' | 'satisfied' | 'released';
+}
+
+export interface LienRenewal {
+    date: string;
+    newExpiration: string;
+}
+
+export interface UCCFiling {
+    id: string;
+    filingState: string;
+    fileDate: string;
+    fileNumber: string;
+    collateralDescription: string;
+    amountSecured: number;
+    expirationDate: string;
+    continuationFiled: boolean;
+    status: 'active' | 'expired' | 'terminated';
+}
+
+// ============================================
+// Extended App state
+// ============================================
 export interface AppData {
     parties: Party[];
     tasks: Task[];
@@ -128,4 +398,12 @@ export interface AppData {
     caseConfig: CaseConfig;
     initialized: boolean;
     darkMode: boolean;
+    // NEW: Extended data
+    alerts: Alert[];
+    assetIntelligence?: AssetIntelligence;
+    enforcementActions: EnforcementAction[];
+    collections: CollectionRecord[];
+    judgmentLiens: JudgmentLien[];
+    uccFilings: UCCFiling[];
+    lastDataRefresh: string;
 }
