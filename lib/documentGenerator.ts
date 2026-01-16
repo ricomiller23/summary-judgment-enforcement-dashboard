@@ -361,26 +361,34 @@ function getTemplateContent(data: DocumentData): string {
     `;
 }
 
-// Generate and download the document as PDF using browser print
+// Generate and download the document as an HTML file
 export function generateDocument(data: DocumentData): void {
     const html = generateDocumentHTML(data);
 
-    // Create a new window for the document
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        alert('Please allow popups to generate documents');
-        return;
+    // Create a blob and download it
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+
+    // Create filename from template name and case number
+    const filename = `${data.templateName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.caseNumber || 'document'}.html`;
+
+    // Create download link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Also open in new tab for preview (user can print to PDF from there)
+    const previewWindow = window.open('', '_blank');
+    if (previewWindow) {
+        previewWindow.document.write(html);
+        previewWindow.document.close();
     }
 
-    printWindow.document.write(html);
-    printWindow.document.close();
-
-    // Wait for content to load, then trigger print dialog (which allows save as PDF)
-    printWindow.onload = () => {
-        setTimeout(() => {
-            printWindow.print();
-        }, 250);
-    };
+    // Cleanup after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // Generate and download as HTML file (alternative option)
