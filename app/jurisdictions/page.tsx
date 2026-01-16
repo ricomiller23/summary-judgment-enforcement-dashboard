@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { JurisdictionBadge } from '@/components/ui/JurisdictionBadge';
+import { generateDocument, DocumentData } from '@/lib/documentGenerator';
 import {
     MapPin, Scale, DollarSign, Clock, CheckCircle, Building2,
-    ChevronRight, Calculator, Users, FileText, AlertTriangle
+    ChevronRight, Calculator, Users, FileText, AlertTriangle, Download, Loader2
 } from 'lucide-react';
 import { Jurisdiction } from '@/lib/types';
 
@@ -57,8 +58,8 @@ export default function JurisdictionsPage() {
                             key={code}
                             onClick={() => setSelectedState(code)}
                             className={`p-4 rounded-xl border transition-all ${selectedState === code
-                                    ? 'bg-[#C7A252] border-[#C7A252] text-[#23313E]'
-                                    : 'bg-white border-[#E5E7EB] text-[#23313E] hover:border-[#C7A252]'
+                                ? 'bg-[#C7A252] border-[#C7A252] text-[#23313E]'
+                                : 'bg-white border-[#E5E7EB] text-[#23313E] hover:border-[#C7A252]'
                                 }`}
                         >
                             <div className="text-xl font-bold">{code}</div>
@@ -179,8 +180,27 @@ export default function JurisdictionsPage() {
                                 <h3 className="font-semibold text-white">Quick Actions</h3>
                             </div>
                             <div className="p-4 space-y-2">
-                                <button className="w-full flex items-center gap-3 p-3 hover:bg-[#2d3e4d] rounded-lg transition-colors text-left">
-                                    <FileText className="w-5 h-5 text-[#C7A252]" />
+                                <button
+                                    onClick={() => {
+                                        const docData: DocumentData = {
+                                            templateName: `Domestication Package - ${STATE_DATA[selectedState].name}`,
+                                            templateId: 'domestication',
+                                            caseNumber: caseConfig.caseNumber,
+                                            judgmentAmount: caseConfig.judgmentAmount,
+                                            interestAccrued: calculateInterest(),
+                                            totalDue: caseConfig.judgmentAmount + calculateInterest(),
+                                            judgmentDate: caseConfig.judgmentDate,
+                                            jurisdiction: selectedState,
+                                            additionalFields: {
+                                                domesticationFee: STATE_DATA[selectedState].domesticationFee,
+                                                interestRate: STATE_DATA[selectedState].interestRate
+                                            }
+                                        };
+                                        generateDocument(docData);
+                                    }}
+                                    className="w-full flex items-center gap-3 p-3 hover:bg-[#2d3e4d] rounded-lg transition-colors text-left"
+                                >
+                                    <Download className="w-5 h-5 text-[#C7A252]" />
                                     <span className="text-white">Generate Domestication Package</span>
                                 </button>
                                 <button className="w-full flex items-center gap-3 p-3 hover:bg-[#2d3e4d] rounded-lg transition-colors text-left">

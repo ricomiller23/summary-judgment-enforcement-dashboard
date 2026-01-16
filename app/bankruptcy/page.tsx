@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { JurisdictionBadge } from '@/components/ui/JurisdictionBadge';
+import { generateDocument, DocumentData } from '@/lib/documentGenerator';
 import {
     Scale, AlertTriangle, Shield, FileText, Calculator, Clock,
-    ChevronRight, CheckCircle, Eye, Plus, Bell
+    ChevronRight, CheckCircle, Eye, Plus, Bell, Download, Loader2
 } from 'lucide-react';
 
 export default function BankruptcyPage() {
     const { caseConfig, calculateInterest } = useData();
     const [activeTab, setActiveTab] = useState<'overview' | 'monitoring' | 'poc'>('overview');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationSuccess, setGenerationSuccess] = useState(false);
 
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
@@ -93,8 +96,8 @@ export default function BankruptcyPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as typeof activeTab)}
                             className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 justify-center ${activeTab === tab.id
-                                    ? 'bg-[#C7A252] text-[#23313E] shadow-sm'
-                                    : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
+                                ? 'bg-[#C7A252] text-[#23313E] shadow-sm'
+                                : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
                                 }`}
                         >
                             <tab.icon className="w-4 h-4" />
@@ -114,11 +117,11 @@ export default function BankruptcyPage() {
                                 {riskFactors.map((factor, i) => (
                                     <div key={i} className="flex items-center gap-3 p-3 bg-[#F8F9FA] rounded-lg">
                                         <div className={`w-3 h-3 rounded-full ${factor.impact === 'high' ? 'bg-red-500' :
-                                                factor.impact === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                                            factor.impact === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
                                             }`} />
                                         <span className="text-[#23313E] flex-1">{factor.factor}</span>
                                         <span className={`text-xs font-medium uppercase ${factor.impact === 'high' ? 'text-red-600' :
-                                                factor.impact === 'medium' ? 'text-amber-600' : 'text-emerald-600'
+                                            factor.impact === 'medium' ? 'text-amber-600' : 'text-emerald-600'
                                             }`}>{factor.impact}</span>
                                     </div>
                                 ))}
@@ -177,9 +180,20 @@ export default function BankruptcyPage() {
                 {activeTab === 'poc' && (
                     <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 shadow-sm">
                         <div className="text-center py-8">
-                            <FileText className="w-12 h-12 text-[#8a95a3] mx-auto mb-4" />
+                            <FileText className="w-12 h-12 text-[#C7A252] mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-[#23313E] mb-2">Proof of Claim Generator</h3>
                             <p className="text-[#5a6a7a] mb-4">Generate Form 410 with pre-filled case information</p>
+
+                            {generationSuccess && (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 max-w-md mx-auto mb-4 flex items-center gap-3">
+                                    <CheckCircle className="w-6 h-6 text-emerald-600" />
+                                    <div className="text-left">
+                                        <div className="font-medium text-emerald-800">Document Generated!</div>
+                                        <div className="text-sm text-emerald-600">Use print dialog to save as PDF</div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="bg-[#F8F9FA] rounded-xl p-4 max-w-md mx-auto mb-4">
                                 <div className="grid grid-cols-2 gap-4 text-sm text-left">
                                     <div>
@@ -190,10 +204,46 @@ export default function BankruptcyPage() {
                                         <span className="text-[#8a95a3]">Interest:</span>
                                         <span className="text-[#23313E] ml-2 font-medium">{formatCurrency(calculateInterest())}</span>
                                     </div>
+                                    <div className="col-span-2">
+                                        <span className="text-[#8a95a3]">Total Claim:</span>
+                                        <span className="text-[#C7A252] ml-2 font-bold">{formatCurrency(caseConfig.judgmentAmount + calculateInterest())}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <button className="px-6 py-2.5 bg-[#C7A252] text-[#23313E] rounded-lg font-medium hover:bg-[#a88b43] transition-colors">
-                                Generate Proof of Claim
+                            <button
+                                onClick={() => {
+                                    setIsGenerating(true);
+                                    const docData: DocumentData = {
+                                        templateName: 'Proof of Claim (Form 410)',
+                                        templateId: 'poc-410',
+                                        caseNumber: caseConfig.caseNumber,
+                                        judgmentAmount: caseConfig.judgmentAmount,
+                                        interestAccrued: calculateInterest(),
+                                        totalDue: caseConfig.judgmentAmount + calculateInterest(),
+                                        judgmentDate: caseConfig.judgmentDate,
+                                        jurisdiction: 'FL',
+                                    };
+                                    setTimeout(() => {
+                                        generateDocument(docData);
+                                        setIsGenerating(false);
+                                        setGenerationSuccess(true);
+                                        setTimeout(() => setGenerationSuccess(false), 3000);
+                                    }, 500);
+                                }}
+                                disabled={isGenerating}
+                                className="px-6 py-2.5 bg-[#C7A252] text-[#23313E] rounded-lg font-medium hover:bg-[#a88b43] transition-colors inline-flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-4 h-4" />
+                                        Generate Proof of Claim
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -202,3 +252,4 @@ export default function BankruptcyPage() {
         </div>
     );
 }
+

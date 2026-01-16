@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useData } from '@/lib/hooks/useData';
 import { Modal } from '@/components/ui/Modal';
+import { generateDocument, DocumentData } from '@/lib/documentGenerator';
 import {
-    FileText, Plus, Download, Eye, Clock, CheckCircle, Send,
-    Mail, FileCheck, Gavel, DollarSign, Search, Filter, ChevronRight
+    FileText, Download, Mail, FileCheck, Gavel, DollarSign, Search, ChevronRight, CheckCircle, Loader2
 } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = [
@@ -37,6 +37,9 @@ export default function DocumentsPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [showGenerateModal, setShowGenerateModal] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[0] | null>(null);
+    const [selectedJurisdiction, setSelectedJurisdiction] = useState('FL');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationSuccess, setGenerationSuccess] = useState(false);
 
     const filteredTemplates = selectedCategory === 'all'
         ? TEMPLATES
@@ -44,6 +47,41 @@ export default function DocumentsPage() {
 
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+
+    const handleGenerateDocument = () => {
+        if (!selectedTemplate) return;
+
+        setIsGenerating(true);
+
+        const documentData: DocumentData = {
+            templateName: selectedTemplate.name,
+            templateId: selectedTemplate.id,
+            caseNumber: caseConfig.caseNumber,
+            judgmentAmount: caseConfig.judgmentAmount,
+            interestAccrued: calculateInterest(),
+            totalDue: caseConfig.judgmentAmount + calculateInterest(),
+            judgmentDate: caseConfig.judgmentDate,
+            jurisdiction: selectedJurisdiction,
+        };
+
+        // Small delay for UX feedback
+        setTimeout(() => {
+            generateDocument(documentData);
+            setIsGenerating(false);
+            setGenerationSuccess(true);
+
+            // Reset success state after 3 seconds
+            setTimeout(() => {
+                setGenerationSuccess(false);
+            }, 3000);
+        }, 500);
+    };
+
+    const closeModal = () => {
+        setShowGenerateModal(false);
+        setSelectedTemplate(null);
+        setGenerationSuccess(false);
+    };
 
     return (
         <div className="min-h-screen bg-[#F8F9FA]">
@@ -86,8 +124,8 @@ export default function DocumentsPage() {
                         <button
                             onClick={() => setSelectedCategory('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === 'all'
-                                    ? 'bg-[#C7A252] text-[#23313E]'
-                                    : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
+                                ? 'bg-[#C7A252] text-[#23313E]'
+                                : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
                                 }`}
                         >
                             All Templates
@@ -97,8 +135,8 @@ export default function DocumentsPage() {
                                 key={cat.id}
                                 onClick={() => setSelectedCategory(cat.id)}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === cat.id
-                                        ? 'bg-[#C7A252] text-[#23313E]'
-                                        : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
+                                    ? 'bg-[#C7A252] text-[#23313E]'
+                                    : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
                                     }`}
                             >
                                 <cat.icon className="w-4 h-4" />
@@ -146,22 +184,29 @@ export default function DocumentsPage() {
                 {/* Generate Modal */}
                 <Modal
                     isOpen={showGenerateModal}
-                    onClose={() => {
-                        setShowGenerateModal(false);
-                        setSelectedTemplate(null);
-                    }}
+                    onClose={closeModal}
                     title={`Generate: ${selectedTemplate?.name || 'Document'}`}
                     size="lg"
                 >
                     <div className="space-y-4">
                         <p className="text-[#5a6a7a]">{selectedTemplate?.description}</p>
 
+                        {generationSuccess && (
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+                                <CheckCircle className="w-6 h-6 text-emerald-600" />
+                                <div>
+                                    <div className="font-medium text-emerald-800">Document Generated!</div>
+                                    <div className="text-sm text-emerald-600">Use your browser's print dialog to save as PDF</div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-[#F8F9FA] rounded-xl p-4">
                             <h4 className="font-medium text-[#23313E] mb-3">Case Information (Auto-filled)</h4>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <span className="text-[#8a95a3]">Case Number:</span>
-                                    <span className="text-[#23313E] ml-2 font-mono">{caseConfig.caseNumber}</span>
+                                    <span className="text-[#23313E] ml-2 font-mono">{caseConfig.caseNumber || 'N/A'}</span>
                                 </div>
                                 <div>
                                     <span className="text-[#8a95a3]">Judgment:</span>
@@ -180,7 +225,11 @@ export default function DocumentsPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-[#23313E] mb-2">Target Jurisdiction</label>
-                            <select className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-[#23313E] focus:border-[#C7A252]">
+                            <select
+                                value={selectedJurisdiction}
+                                onChange={(e) => setSelectedJurisdiction(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg text-[#23313E] focus:border-[#C7A252]"
+                            >
                                 <option value="FL">Florida</option>
                                 <option value="TN">Tennessee</option>
                                 <option value="IN">Indiana</option>
@@ -190,14 +239,27 @@ export default function DocumentsPage() {
 
                         <div className="flex gap-3 pt-4">
                             <button
-                                onClick={() => setShowGenerateModal(false)}
+                                onClick={closeModal}
                                 className="flex-1 px-4 py-2.5 bg-[#F8F9FA] text-[#5a6a7a] rounded-lg font-medium hover:bg-[#E5E7EB] transition-colors"
                             >
                                 Cancel
                             </button>
-                            <button className="flex-1 px-4 py-2.5 bg-[#C7A252] text-[#23313E] rounded-lg font-medium hover:bg-[#a88b43] transition-colors flex items-center justify-center gap-2">
-                                <Download className="w-4 h-4" />
-                                Generate Document
+                            <button
+                                onClick={handleGenerateDocument}
+                                disabled={isGenerating}
+                                className="flex-1 px-4 py-2.5 bg-[#C7A252] text-[#23313E] rounded-lg font-medium hover:bg-[#a88b43] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="w-4 h-4" />
+                                        Generate Document
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
