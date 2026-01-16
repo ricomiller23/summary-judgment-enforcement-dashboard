@@ -8,9 +8,9 @@ import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { AlertPanel } from '@/components/ui/AlertPanel';
 import { Jurisdiction } from '@/lib/types';
 import {
-  Zap, MapPin, AlertTriangle, Clock, CheckCircle, TrendingUp, FileText, Users,
-  DollarSign, Target, Calendar, ArrowUpRight, RefreshCw, Send, Search as SearchIcon,
-  Gavel, Building2, PieChart
+  Scale, MapPin, AlertTriangle, Clock, CheckCircle, TrendingUp, FileText, Users,
+  DollarSign, Target, Calendar, ArrowUpRight, RefreshCw, Send, ChevronRight,
+  Gavel, Building2, PieChart, Briefcase, Shield, Brain, Activity
 } from 'lucide-react';
 
 export default function OverviewPage() {
@@ -18,14 +18,10 @@ export default function OverviewPage() {
     getPriorityTasks,
     getJurisdictionStats,
     tasks,
-    files,
-    counsel,
     caseConfig,
     calculateInterest,
     getOverdueTasks,
     getThisWeekTasks,
-    getBestOffer,
-    // New data
     alerts,
     dismissAlert,
     snoozeAlert,
@@ -35,9 +31,7 @@ export default function OverviewPage() {
     getOutstandingBalance,
     getRecoveryProbability,
     getTotalKnownAssets,
-    assetIntelligence,
     enforcementActions,
-    lastDataRefresh
   } = useData();
 
   const priorityTasks = getPriorityTasks(5);
@@ -55,19 +49,6 @@ export default function OverviewPage() {
   const formatCurrencyDetailed = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 
-  // Recovery probability color
-  const getProbabilityColor = (score: number) => {
-    if (score >= 70) return 'text-emerald-400';
-    if (score >= 40) return 'text-amber-400';
-    return 'text-red-400';
-  };
-
-  const getProbabilityBg = (score: number) => {
-    if (score >= 70) return 'from-emerald-500 to-emerald-400';
-    if (score >= 40) return 'from-amber-500 to-amber-400';
-    return 'from-red-500 to-red-400';
-  };
-
   // Get domestication progress
   const domesticationProgress = useMemo(() => {
     const domesticationTasks = tasks.filter(t => t.category === 'DOMESTICATION');
@@ -77,396 +58,288 @@ export default function OverviewPage() {
   }, [tasks]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8 mb-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-purple-600/10" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-4">
-            <JurisdictionBadge jurisdiction="FL" size="lg" showFull />
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-400 text-sm">Brevard County Circuit Court</span>
-            {caseConfig.caseNumber && (
-              <>
-                <span className="text-slate-400">•</span>
-                <span className="text-slate-500 text-sm font-mono">{caseConfig.caseNumber}</span>
-              </>
-            )}
-          </div>
+    <div className="min-h-screen bg-[#F8F9FA]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-            Good Dogg Beverage Co. <span className="text-slate-400">v.</span> MSH
-          </h1>
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[#23313E] mb-2">Case Overview</h1>
+          <p className="text-[#5a6a7a]">Good Dogg Beverage Co. v. Management Services Holdings, LLC</p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-4 mt-4">
-            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-lg px-4 py-2">
-              <span className="text-emerald-400 font-bold text-2xl">{formatCurrency(caseConfig.judgmentAmount)}</span>
-              <span className="text-emerald-400/70 text-sm ml-2">Judgment</span>
+        {/* Hero Case Card */}
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 mb-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-[#C7A252]/15 rounded-xl flex items-center justify-center">
+                  <Scale className="w-6 h-6 text-[#C7A252]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <JurisdictionBadge jurisdiction="FL" size="sm" />
+                    <span className="text-[#5a6a7a] text-sm">Brevard County Circuit Court</span>
+                  </div>
+                  <span className="text-[#8a95a3] text-sm font-mono">{caseConfig.caseNumber}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-[#22C55E]/10 text-[#22C55E] text-sm font-medium rounded-full">
+                  Post-Judgment
+                </span>
+                <span className="px-3 py-1 bg-[#C7A252]/15 text-[#C7A252] text-sm font-medium rounded-full">
+                  Enforcement Active
+                </span>
+              </div>
             </div>
-            <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg px-4 py-2">
-              <span className="text-amber-400 font-bold text-xl">+{formatCurrency(interest)}</span>
-              <span className="text-amber-400/70 text-sm ml-2">Interest</span>
-            </div>
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg px-4 py-2">
-              <span className="text-blue-400 font-bold text-xl">{formatCurrency(getOutstandingBalance)}</span>
-              <span className="text-blue-400/70 text-sm ml-2">Total Due</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="bg-blue-500/20 text-blue-400 text-sm px-3 py-1.5 rounded-lg border border-blue-500/30">
-                Post-Judgment
-              </span>
-              <span className="bg-purple-500/20 text-purple-400 text-sm px-3 py-1.5 rounded-lg border border-purple-500/30">
-                Enforcement Ongoing
-              </span>
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center px-4 py-3 bg-[#F8F9FA] rounded-xl">
+                <div className="text-2xl font-bold text-[#23313E]">{formatCurrency(caseConfig.judgmentAmount)}</div>
+                <div className="text-xs text-[#8a95a3] uppercase tracking-wide font-medium">Judgment</div>
+              </div>
+              <div className="text-center px-4 py-3 bg-[#C7A252]/10 rounded-xl">
+                <div className="text-2xl font-bold text-[#C7A252]">+{formatCurrency(interest)}</div>
+                <div className="text-xs text-[#8a95a3] uppercase tracking-wide font-medium">Interest</div>
+              </div>
+              <div className="text-center px-4 py-3 bg-[#F8F9FA] rounded-xl">
+                <div className="text-2xl font-bold text-[#23313E]">{formatCurrency(getOutstandingBalance)}</div>
+                <div className="text-xs text-[#8a95a3] uppercase tracking-wide font-medium">Total Due</div>
+              </div>
+              <div className="text-center px-4 py-3 bg-[#22C55E]/10 rounded-xl">
+                <div className="text-2xl font-bold text-[#22C55E]">{getRecoveryProbability}%</div>
+                <div className="text-xs text-[#8a95a3] uppercase tracking-wide font-medium">Recovery</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Grid - Dashboard + Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Left Column - Metrics & Widgets */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Key Metrics Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {/* Recovery Probability Gauge */}
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="relative w-16 h-16 mx-auto mb-2">
-                <svg className="w-16 h-16 transform -rotate-90">
-                  <circle cx="32" cy="32" r="28" strokeWidth="6" fill="none" className="stroke-slate-700" />
-                  <circle
-                    cx="32" cy="32" r="28" strokeWidth="6" fill="none"
-                    className={`stroke-current ${getProbabilityColor(getRecoveryProbability)}`}
-                    strokeLinecap="round"
-                    strokeDasharray={`${getRecoveryProbability * 1.76} 176`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={`text-lg font-bold ${getProbabilityColor(getRecoveryProbability)}`}>
-                    {getRecoveryProbability}%
-                  </span>
-                </div>
+        {/* Stat Cards Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm hover:border-[#C7A252] transition-all">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#3B82F6]/10 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-[#3B82F6]" />
               </div>
-              <div className="text-xs text-slate-500">Recovery Probability</div>
+              <span className="text-sm text-[#8a95a3]">Days Since Judgment</span>
             </div>
+            <div className="text-3xl font-bold text-[#23313E]">{getDaysSinceJudgment}</div>
+          </div>
 
-            {/* Days Since Judgment */}
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Calendar className="w-4 h-4 text-purple-400" />
-                <span className="text-2xl font-bold text-white">{getDaysSinceJudgment}</span>
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm hover:border-[#C7A252] transition-all">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#22C55E]/10 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-[#22C55E]" />
               </div>
-              <div className="text-xs text-slate-500">Days Since Judgment</div>
+              <span className="text-sm text-[#8a95a3]">Collected</span>
             </div>
-
-            {/* Amount Collected */}
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-                <span className="text-2xl font-bold text-emerald-400">{formatCurrency(getAmountCollected)}</span>
-              </div>
-              <div className="text-xs text-slate-500">Collected</div>
-              <div className="text-[10px] text-slate-600 mt-1">
-                {((getAmountCollected / caseConfig.judgmentAmount) * 100).toFixed(1)}% of judgment
-              </div>
-            </div>
-
-            {/* Daily Interest */}
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-amber-400" />
-                <span className="text-xl font-bold text-amber-400">+{formatCurrencyDetailed(getDailyInterest)}</span>
-              </div>
-              <div className="text-xs text-slate-500">Daily Interest</div>
-              <div className="text-[10px] text-slate-600 mt-1">{caseConfig.interestRate}% per annum</div>
+            <div className="text-3xl font-bold text-[#22C55E]">{formatCurrency(getAmountCollected)}</div>
+            <div className="text-xs text-[#8a95a3] mt-1">
+              {((getAmountCollected / caseConfig.judgmentAmount) * 100).toFixed(1)}% of judgment
             </div>
           </div>
 
-          {/* Secondary Metrics Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <AlertTriangle className={`w-4 h-4 ${overdueTasks.length > 0 ? 'text-red-400' : 'text-slate-500'}`} />
-                <span className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-400' : 'text-white'}`}>
-                  {overdueTasks.length}
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm hover:border-[#C7A252] transition-all">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#C7A252]/15 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-[#C7A252]" />
+              </div>
+              <span className="text-sm text-[#8a95a3]">Daily Interest</span>
+            </div>
+            <div className="text-3xl font-bold text-[#C7A252]">+{formatCurrencyDetailed(getDailyInterest)}</div>
+            <div className="text-xs text-[#8a95a3] mt-1">{caseConfig.interestRate}% per annum</div>
+          </div>
+
+          <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm hover:border-[#C7A252] transition-all">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-[#8B5CF6]/10 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-[#8B5CF6]" />
+              </div>
+              <span className="text-sm text-[#8a95a3]">Known Assets</span>
+            </div>
+            <div className="text-3xl font-bold text-[#8B5CF6]">{formatCurrency(getTotalKnownAssets)}</div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Left Column - Alerts & Tasks */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Active Alerts */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[#23313E] flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                  Active Alerts
+                </h2>
+                <span className="px-2 py-1 bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-medium rounded-full">
+                  {alerts.filter(a => a.status === 'ACTIVE').length} pending
                 </span>
               </div>
-              <div className="text-xs text-slate-500">Overdue</div>
-            </div>
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-blue-400" />
-                <span className="text-2xl font-bold text-white">{thisWeekTasks.length}</span>
+              <div className="p-4">
+                <AlertPanel
+                  alerts={alerts}
+                  onDismiss={dismissAlert}
+                  onSnooze={snoozeAlert}
+                  maxAlerts={4}
+                />
               </div>
-              <div className="text-xs text-slate-500">This Week</div>
             </div>
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Building2 className="w-4 h-4 text-blue-400" />
-                <span className="text-2xl font-bold text-white">{formatCurrency(getTotalKnownAssets)}</span>
-              </div>
-              <div className="text-xs text-slate-500">Known Assets</div>
-            </div>
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span className="text-2xl font-bold text-emerald-400">{completionRate}%</span>
-              </div>
-              <div className="text-xs text-slate-500">Tasks Complete</div>
-            </div>
-          </div>
 
-          {/* Domestication Progress */}
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Gavel className="w-4 h-4 text-blue-400" />
-                Domestication Progress
-              </h3>
-              <span className="text-sm text-slate-400">
-                {domesticationProgress.completed}/{domesticationProgress.total} states
-              </span>
-            </div>
-            <div className="flex gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="text-xs text-slate-400">FL</span>
-                <CheckCircle className="w-3 h-3 text-emerald-400" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-xs text-slate-400">TN</span>
-                <span className="text-[10px] text-amber-400">In Progress</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-slate-600"></span>
-                <span className="text-xs text-slate-400">IN</span>
-                <span className="text-[10px] text-slate-500">Planned</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-slate-600"></span>
-                <span className="text-xs text-slate-400">CO</span>
-                <span className="text-[10px] text-slate-500">Planned</span>
-              </div>
-            </div>
-            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all"
-                style={{ width: `${domesticationProgress.percentage}%` }}
-              />
-            </div>
-            {domesticationProgress.percentage === 0 && (
-              <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                <p className="text-xs text-amber-400">
-                  ⚠️ BLOCKED: Missing exemplified script from Brevard County
-                </p>
-                <Link href="/enforcement" className="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                  Generate request letter →
+            {/* Priority Tasks */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[#23313E] flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-[#22C55E]" />
+                  Priority Tasks
+                </h2>
+                <Link href="/tasks" className="text-sm text-[#C7A252] hover:text-[#a88b43] font-medium flex items-center gap-1">
+                  View All <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
-            )}
-          </div>
+              <div className="divide-y divide-[#E5E7EB]">
+                {priorityTasks.slice(0, 5).filter(task => task.jurisdiction && task.priority).map((task) => (
+                  <div key={task.id} className="px-6 py-4 hover:bg-[#F8F9FA] transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <JurisdictionBadge jurisdiction={task.jurisdiction!} />
+                        <span className="font-medium text-[#23313E]">{task.title}</span>
+                      </div>
+                      <PriorityBadge priority={task.priority!} />
+                    </div>
+                    {task.dueDate && (
+                      <div className="flex items-center gap-1 mt-2 text-sm text-[#8a95a3]">
+                        <Clock className="w-4 h-4" />
+                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          {/* Quick Actions Bar */}
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400" />
-              Quick Actions
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              <Link href="/enforcement" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Send className="w-5 h-5 text-blue-400" />
-                <span className="text-xs text-slate-300">Demand Letter</span>
-              </Link>
-              <Link href="/enforcement" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Gavel className="w-5 h-5 text-purple-400" />
-                <span className="text-xs text-slate-300">File Garnishment</span>
-              </Link>
-              <Link href="/assets" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <SearchIcon className="w-5 h-5 text-emerald-400" />
-                <span className="text-xs text-slate-300">Asset Search</span>
-              </Link>
-              <Link href="/examination" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <FileText className="w-5 h-5 text-amber-400" />
-                <span className="text-xs text-slate-300">Debtor Exam</span>
-              </Link>
-              <Link href="/settle" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <DollarSign className="w-5 h-5 text-green-400" />
-                <span className="text-xs text-slate-300">Settlement</span>
-              </Link>
-              <Link href="/reports" className="flex flex-col items-center gap-1 p-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <PieChart className="w-5 h-5 text-pink-400" />
-                <span className="text-xs text-slate-300">Reports</span>
-              </Link>
+            {/* Quick Actions */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-[#23313E] mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Link href="/documents" className="flex flex-col items-center gap-2 p-4 bg-[#F8F9FA] hover:bg-[#C7A252]/10 rounded-xl transition-all group">
+                  <FileText className="w-6 h-6 text-[#5a6a7a] group-hover:text-[#C7A252]" />
+                  <span className="text-sm font-medium text-[#23313E]">Generate Doc</span>
+                </Link>
+                <Link href="/enforcement" className="flex flex-col items-center gap-2 p-4 bg-[#F8F9FA] hover:bg-[#C7A252]/10 rounded-xl transition-all group">
+                  <Gavel className="w-6 h-6 text-[#5a6a7a] group-hover:text-[#C7A252]" />
+                  <span className="text-sm font-medium text-[#23313E]">New Action</span>
+                </Link>
+                <Link href="/examination" className="flex flex-col items-center gap-2 p-4 bg-[#F8F9FA] hover:bg-[#C7A252]/10 rounded-xl transition-all group">
+                  <Users className="w-6 h-6 text-[#5a6a7a] group-hover:text-[#C7A252]" />
+                  <span className="text-sm font-medium text-[#23313E]">Debtor Exam</span>
+                </Link>
+                <Link href="/settle" className="flex flex-col items-center gap-2 p-4 bg-[#F8F9FA] hover:bg-[#C7A252]/10 rounded-xl transition-all group">
+                  <DollarSign className="w-6 h-6 text-[#5a6a7a] group-hover:text-[#C7A252]" />
+                  <span className="text-sm font-medium text-[#23313E]">Settlement</span>
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Next Priority Actions */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Target className="w-5 h-5 text-amber-400" />
-                Next Priority Actions
-              </h2>
-              <Link href="/tasks" className="text-blue-400 text-sm hover:text-blue-300 transition-colors">
-                View all tasks →
-              </Link>
+          {/* Right Column - Jurisdictions & Status */}
+          <div className="space-y-6">
+
+            {/* Jurisdiction Progress */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB]">
+                <h2 className="text-lg font-semibold text-[#23313E] flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-[#C7A252]" />
+                  Jurisdictions
+                </h2>
+              </div>
+              <div className="p-4 space-y-4">
+                {jurisdictionStats.map((stat) => (
+                  <div key={stat.jurisdiction} className="bg-[#F8F9FA] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <JurisdictionBadge jurisdiction={stat.jurisdiction as Jurisdiction} showFull />
+                      </div>
+                      <span className="text-sm font-semibold text-[#23313E]">{stat.progress}%</span>
+                    </div>
+                    <div className="h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#C7A252] to-[#d4b76c] rounded-full transition-all"
+                        style={{ width: `${stat.progress}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2 text-xs text-[#8a95a3]">
+                      <span>{stat.openTasks} open tasks</span>
+                      <span>{stat.files} files</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {priorityTasks.slice(0, 4).map((task, index) => {
-                const linkedFiles = files.filter(f => task.linkedFileIds?.includes(f.id));
-                const assignedCounsel = counsel.find(c => c.id === task.assignedCounselId);
+            {/* Enforcement Status */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB]">
+                <h2 className="text-lg font-semibold text-[#23313E] flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-[#3B82F6]" />
+                  Enforcement Status
+                </h2>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between p-3 bg-[#22C55E]/10 rounded-lg">
+                  <span className="text-sm text-[#23313E]">Active Actions</span>
+                  <span className="font-semibold text-[#22C55E]">
+                    {enforcementActions.filter(a => a.status !== 'terminated' && a.status !== 'collected').length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-lg">
+                  <span className="text-sm text-[#23313E]">Open Tasks</span>
+                  <span className="font-semibold text-[#23313E]">{openTasks}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-[#F8F9FA] rounded-lg">
+                  <span className="text-sm text-[#23313E]">Completed</span>
+                  <span className="font-semibold text-[#22C55E]">{doneTasks}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-[#EF4444]/10 rounded-lg">
+                  <span className="text-sm text-[#23313E]">Overdue</span>
+                  <span className="font-semibold text-[#EF4444]">{overdueTasks.length}</span>
+                </div>
+              </div>
+            </div>
 
-                return (
-                  <div
-                    key={task.id}
-                    className="bg-slate-900 border border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-all group relative overflow-hidden"
+            {/* Module Links */}
+            <div className="bg-[#23313E] rounded-xl overflow-hidden shadow-lg">
+              <div className="px-6 py-4 border-b border-[#2d3e4d]">
+                <h2 className="text-lg font-semibold text-white">Modules</h2>
+              </div>
+              <div className="p-4 space-y-2">
+                {[
+                  { href: '/assets', label: 'Asset Intelligence', icon: Target },
+                  { href: '/strategy', label: 'AI Strategy Engine', icon: Brain },
+                  { href: '/liens', label: 'Lien Registry', icon: Shield },
+                  { href: '/bankruptcy', label: 'Bankruptcy Defense', icon: Scale },
+                ].map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-3 p-3 hover:bg-[#2d3e4d] rounded-lg transition-colors group"
                   >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500" />
-
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-2xl font-bold text-slate-600">{index + 1}</span>
-                      {task.priority && <PriorityBadge priority={task.priority} />}
+                    <div className="w-8 h-8 bg-[#C7A252]/20 rounded-lg flex items-center justify-center group-hover:bg-[#C7A252]/30">
+                      <item.icon className="w-4 h-4 text-[#C7A252]" />
                     </div>
-
-                    <h3 className="text-white font-semibold mb-2 line-clamp-2">{task.title}</h3>
-
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      {task.jurisdiction && <JurisdictionBadge jurisdiction={task.jurisdiction} />}
-                      {task.dueDate && (
-                        <span className="text-xs text-slate-500">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Automation hints */}
-                    <div className="mt-3 pt-3 border-t border-slate-800 space-y-1">
-                      {linkedFiles.length > 0 && (
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          {linkedFiles.length} linked file{linkedFiles.length !== 1 ? 's' : ''}
-                        </p>
-                      )}
-                      {assignedCounsel && (
-                        <p className="text-xs text-blue-400 flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {assignedCounsel.name}
-                        </p>
-                      )}
-                      {task.category === 'DOMESTICATION' && !assignedCounsel && (
-                        <p className="text-xs text-amber-400">💡 Need local counsel</p>
-                      )}
-                    </div>
-
-                    <Link
-                      href="/tasks"
-                      className="mt-4 inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      Open →
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        {/* Right Column - Alerts */}
-        <div className="space-y-6">
-          <AlertPanel
-            alerts={alerts}
-            onDismiss={dismissAlert}
-            onSnooze={snoozeAlert}
-            maxAlerts={6}
-          />
-
-          {/* Last Updated */}
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <RefreshCw className="w-3 h-3" />
-                <span>
-                  Updated: {new Date(lastDataRefresh).toLocaleTimeString()}
-                </span>
+                    <span className="text-white font-medium">{item.label}</span>
+                    <ChevronRight className="w-4 h-4 text-[#5a6a7a] ml-auto group-hover:text-[#C7A252]" />
+                  </Link>
+                ))}
               </div>
-              <button className="text-xs text-blue-400 hover:text-blue-300">
-                Refresh
-              </button>
             </div>
+
           </div>
         </div>
       </div>
-
-      {/* Enforcement Grid */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-blue-400" />
-            Enforcement by Jurisdiction
-          </h2>
-          <Link href="/enforcement" className="text-blue-400 text-sm hover:text-blue-300 transition-colors">
-            View details →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {jurisdictionStats.map((stat) => {
-            const phaseColors: Record<string, string> = {
-              'Complete': 'text-emerald-400',
-              'Active': 'text-amber-400',
-              'Planning': 'text-blue-400',
-              'Backlog': 'text-slate-400',
-            };
-
-            return (
-              <div
-                key={stat.jurisdiction}
-                className="bg-slate-900 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-all"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <JurisdictionBadge jurisdiction={stat.jurisdiction as Jurisdiction} size="lg" showFull />
-                  <span className={`text-sm font-medium ${phaseColors[stat.phase]}`}>
-                    {stat.phase}
-                  </span>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Open Tasks</span>
-                    <span className="text-white font-medium">{stat.openTasks}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Files</span>
-                    <span className="text-white font-medium">{stat.files}</span>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-500"
-                      style={{ width: `${stat.progress}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-xs text-slate-500">Progress</span>
-                    <span className="text-xs text-slate-400">{stat.progress}%</span>
-                  </div>
-                </div>
-
-                <Link
-                  href="/enforcement"
-                  className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  View →
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }

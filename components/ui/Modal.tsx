@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 
 interface ModalProps {
     isOpen: boolean;
@@ -41,20 +42,18 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     return (
         <div
             ref={overlayRef}
-            className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-[#23313E]/60 backdrop-blur-sm overflow-y-auto"
             onClick={(e) => e.target === overlayRef.current && onClose()}
         >
-            <div className={`${sizeClasses[size]} w-full bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl mb-20 animate-in fade-in zoom-in-95 duration-200`}>
+            <div className={`${sizeClasses[size]} w-full bg-white border border-[#E5E7EB] rounded-2xl shadow-2xl mb-20 animate-in fade-in zoom-in-95 duration-200`}>
                 {title && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-                        <h2 className="text-lg font-semibold text-white">{title}</h2>
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+                        <h2 className="text-lg font-semibold text-[#23313E]">{title}</h2>
                         <button
                             onClick={onClose}
-                            className="text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800"
+                            className="text-[#8a95a3] hover:text-[#23313E] transition-colors p-1.5 rounded-lg hover:bg-[#F8F9FA]"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
                 )}

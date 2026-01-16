@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Moon, Sun, Search, Scale } from 'lucide-react';
+import { Search, Scale, Bell, User, ChevronDown } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
 
 interface HeaderProps {
@@ -11,88 +11,102 @@ interface HeaderProps {
 
 export function Header({ onSearchClick }: HeaderProps) {
     const pathname = usePathname();
-    const { darkMode, toggleDarkMode } = useData();
+    const { alerts } = useData();
+
+    const activeAlerts = alerts.filter(a => a.status === 'ACTIVE').length;
 
     const navItems = [
-        { href: '/', label: 'Overview' },
+        { href: '/', label: 'Dashboard' },
         { href: '/assets', label: 'Assets' },
-        { href: '/enforcement', label: 'Enforce' },
-        { href: '/documents', label: 'Docs' },
+        { href: '/enforcement', label: 'Enforcement' },
+        { href: '/documents', label: 'Documents' },
         { href: '/jurisdictions', label: 'States' },
         { href: '/liens', label: 'Liens' },
-        { href: '/bankruptcy', label: 'BK Defense' },
+        { href: '/bankruptcy', label: 'Bankruptcy' },
         { href: '/strategy', label: 'Strategy' },
-        { href: '/examination', label: 'Exam' },
-        { href: '/settle', label: 'Settle' },
+        { href: '/examination', label: 'Examination' },
+        { href: '/settle', label: 'Settlement' },
         { href: '/tasks', label: 'Tasks' },
         { href: '/reports', label: 'Reports' },
     ];
 
     return (
-        <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
+        <header className="bg-[#23313E] sticky top-0 z-40 shadow-lg">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-                            <Scale className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 bg-[#C7A252] rounded-lg flex items-center justify-center shadow-md">
+                            <Scale className="w-6 h-6 text-[#23313E]" />
                         </div>
-                        <span className="text-lg font-bold text-white hidden sm:block">SJ Dashboard</span>
+                        <div className="hidden sm:block">
+                            <span className="text-lg font-bold text-white">Good Dogg</span>
+                            <span className="text-sm text-[#C7A252] block -mt-1">Enforcement Dashboard</span>
+                        </div>
                     </div>
 
-                    {/* Navigation */}
-                    <nav className="hidden lg:flex items-center gap-1">
-                        {navItems.map((item) => {
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                        }`}
-                                >
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
                     {/* Right Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                         {/* Search */}
                         <button
                             onClick={onSearchClick}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 text-sm hover:bg-slate-700 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#2d3e4d] border border-[#3d4e5d] rounded-lg text-gray-300 text-sm hover:bg-[#3d4e5d] hover:border-[#C7A252] transition-all"
                         >
                             <Search className="w-4 h-4" />
-                            <span className="hidden sm:block">Search...</span>
-                            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 bg-slate-700 rounded text-xs text-slate-400">⌘K</kbd>
+                            <span className="hidden md:block">Search...</span>
+                            <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 bg-[#1a252f] rounded text-xs text-gray-400 ml-2">⌘K</kbd>
                         </button>
 
-                        {/* Dark Mode Toggle */}
-                        <button
-                            onClick={toggleDarkMode}
-                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Toggle dark mode"
-                        >
-                            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        {/* Notifications */}
+                        <button className="relative p-2 text-gray-300 hover:text-[#C7A252] hover:bg-[#2d3e4d] rounded-lg transition-all">
+                            <Bell className="w-5 h-5" />
+                            {activeAlerts > 0 && (
+                                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {activeAlerts > 9 ? '9+' : activeAlerts}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* User Menu */}
+                        <button className="flex items-center gap-2 p-2 text-gray-300 hover:bg-[#2d3e4d] rounded-lg transition-all">
+                            <div className="w-8 h-8 bg-[#C7A252] rounded-full flex items-center justify-center">
+                                <User className="w-4 h-4 text-[#23313E]" />
+                            </div>
+                            <ChevronDown className="w-4 h-4 hidden sm:block" />
                         </button>
                     </div>
                 </div>
 
-                {/* Mobile Navigation */}
-                <nav className="lg:hidden flex items-center gap-1 pb-3 overflow-x-auto">
+                {/* Navigation - Desktop */}
+                <nav className="hidden lg:flex items-center gap-1 pb-3 -mt-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                                        ? 'bg-[#C7A252] text-[#23313E] shadow-md'
+                                        : 'text-gray-300 hover:text-white hover:bg-[#2d3e4d]'
+                                    }`}
+                            >
+                                {item.label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Navigation - Mobile */}
+                <nav className="lg:hidden flex items-center gap-1 pb-3 overflow-x-auto scrollbar-hide">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${isActive
+                                        ? 'bg-[#C7A252] text-[#23313E]'
+                                        : 'text-gray-400 hover:text-white hover:bg-[#2d3e4d]'
                                     }`}
                             >
                                 {item.label}
