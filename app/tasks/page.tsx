@@ -2,282 +2,137 @@
 
 import { useState } from 'react';
 import { useData } from '@/lib/hooks/useData';
-import { TaskCard } from '@/components/ui/TaskCard';
-import { Modal } from '@/components/ui/Modal';
-import { Task, TaskStatus, TaskCategory, Jurisdiction, Priority } from '@/lib/types';
-
-const statusColumns: { status: TaskStatus; label: string; color: string }[] = [
-    { status: 'BACKLOG', label: 'Backlog', color: 'border-slate-600' },
-    { status: 'THIS_WEEK', label: 'This Week', color: 'border-blue-500' },
-    { status: 'IN_PROGRESS', label: 'In Progress', color: 'border-amber-500' },
-    { status: 'WAITING', label: 'Waiting', color: 'border-purple-500' },
-    { status: 'DONE', label: 'Done', color: 'border-emerald-500' },
-];
+import { JurisdictionBadge } from '@/components/ui/JurisdictionBadge';
+import { PriorityBadge } from '@/components/ui/PriorityBadge';
+import {
+    ListTodo, Plus, Clock, CheckCircle, ChevronRight, Calendar
+} from 'lucide-react';
 
 export default function TasksPage() {
-    const { tasks, updateTaskStatus, addTask } = useData();
-    const [draggedTask, setDraggedTask] = useState<string | null>(null);
-    const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-    const [filter, setFilter] = useState<Jurisdiction | 'ALL'>('ALL');
+    const { tasks, updateTask } = useData();
+    const [filter, setFilter] = useState<'all' | 'backlog' | 'in-progress' | 'done'>('all');
 
-    const filteredTasks = filter === 'ALL' ? tasks : tasks.filter(t => t.jurisdiction === filter);
+    const filteredTasks = tasks.filter(task => {
+        if (filter === 'all') return true;
+        if (filter === 'backlog') return task.status === 'BACKLOG' || task.status === 'THIS_WEEK';
+        if (filter === 'in-progress') return task.status === 'IN_PROGRESS' || task.status === 'WAITING';
+        if (filter === 'done') return task.status === 'DONE';
+        return true;
+    });
 
-    const handleDragStart = (e: React.DragEvent, taskId: string) => {
-        setDraggedTask(taskId);
-        e.dataTransfer.effectAllowed = 'move';
-    };
+    const backlogCount = tasks.filter(t => t.status === 'BACKLOG' || t.status === 'THIS_WEEK').length;
+    const inProgressCount = tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'WAITING').length;
+    const doneCount = tasks.filter(t => t.status === 'DONE').length;
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
-        e.preventDefault();
-        if (draggedTask) {
-            updateTaskStatus(draggedTask, status);
-            setDraggedTask(null);
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'BACKLOG': return 'bg-gray-100 text-gray-700';
+            case 'THIS_WEEK': return 'bg-blue-100 text-blue-700';
+            case 'IN_PROGRESS': return 'bg-[#C7A252]/20 text-[#C7A252]';
+            case 'WAITING': return 'bg-amber-100 text-amber-700';
+            case 'DONE': return 'bg-emerald-100 text-emerald-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
     };
 
-    const handleDragEnd = () => {
-        setDraggedTask(null);
-    };
-
     return (
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Tasks</h1>
-                    <p className="text-slate-400 mt-1">Drag tasks between columns to update status</p>
-                </div>
+        <div className="min-h-screen bg-[#F8F9FA]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-                <div className="flex items-center gap-3">
-                    <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value as Jurisdiction | 'ALL')}
-                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="ALL">All Jurisdictions</option>
-                        <option value="FL">Florida</option>
-                        <option value="TN">Tennessee</option>
-                        <option value="IN">Indiana</option>
-                        <option value="CO">Colorado</option>
-                    </select>
-
-                    <button
-                        onClick={() => setShowNewTaskModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        New Task
+                {/* Page Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-[#23313E] flex items-center gap-3">
+                            <ListTodo className="w-8 h-8 text-[#C7A252]" />
+                            Task Management
+                        </h1>
+                        <p className="text-[#5a6a7a] mt-1">Track and manage enforcement tasks</p>
+                    </div>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-[#C7A252] hover:bg-[#a88b43] text-[#23313E] rounded-lg font-medium transition-all shadow-sm">
+                        <Plus className="w-4 h-4" />
+                        Add Task
                     </button>
                 </div>
-            </div>
 
-            {/* Kanban Board */}
-            <div className="flex gap-4 overflow-x-auto pb-4">
-                {statusColumns.map((column) => {
-                    const columnTasks = filteredTasks.filter(t => t.status === column.status);
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm">
+                        <div className="text-2xl font-bold text-gray-600">{backlogCount}</div>
+                        <div className="text-sm text-[#8a95a3]">Backlog</div>
+                    </div>
+                    <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm">
+                        <div className="text-2xl font-bold text-[#C7A252]">{inProgressCount}</div>
+                        <div className="text-sm text-[#8a95a3]">In Progress</div>
+                    </div>
+                    <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm">
+                        <div className="text-2xl font-bold text-emerald-600">{doneCount}</div>
+                        <div className="text-sm text-[#8a95a3]">Completed</div>
+                    </div>
+                </div>
 
-                    return (
-                        <div
-                            key={column.status}
-                            className="flex-shrink-0 w-72"
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, column.status)}
+                {/* Filters */}
+                <div className="flex gap-1 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-1 shadow-sm">
+                    {[
+                        { id: 'all', label: 'All Tasks' },
+                        { id: 'backlog', label: 'Backlog' },
+                        { id: 'in-progress', label: 'In Progress' },
+                        { id: 'done', label: 'Done' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setFilter(tab.id as typeof filter)}
+                            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex-1 ${filter === tab.id
+                                    ? 'bg-[#C7A252] text-[#23313E] shadow-sm'
+                                    : 'text-[#5a6a7a] hover:bg-[#F8F9FA]'
+                                }`}
                         >
-                            {/* Column Header */}
-                            <div className={`bg-slate-900 border-t-2 ${column.color} border-x border-slate-700 rounded-t-xl p-3`}>
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-white font-medium">{column.label}</h3>
-                                    <span className="bg-slate-800 text-slate-400 text-xs px-2 py-1 rounded-full">
-                                        {columnTasks.length}
-                                    </span>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Task List */}
+                <div className="space-y-3">
+                    {filteredTasks.map((task) => (
+                        <div key={task.id} className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-sm hover:border-[#C7A252] transition-all">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                                            {task.status.replace('_', ' ')}
+                                        </span>
+                                        {task.jurisdiction && <JurisdictionBadge jurisdiction={task.jurisdiction} size="sm" />}
+                                        {task.priority && <PriorityBadge priority={task.priority} size="sm" />}
+                                    </div>
+                                    <h3 className="font-semibold text-[#23313E] mb-1">{task.title}</h3>
+                                    {task.description && (
+                                        <p className="text-sm text-[#5a6a7a] line-clamp-2">{task.description}</p>
+                                    )}
+                                    {task.dueDate && (
+                                        <div className="flex items-center gap-2 mt-3 text-sm text-[#5a6a7a]">
+                                            <Calendar className="w-4 h-4" />
+                                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {task.status !== 'DONE' && (
+                                        <button
+                                            onClick={() => updateTask(task.id, {
+                                                status: task.status === 'BACKLOG' || task.status === 'THIS_WEEK' ? 'IN_PROGRESS' : 'DONE'
+                                            })}
+                                            className="px-3 py-1.5 text-sm font-medium text-[#C7A252] hover:bg-[#C7A252]/10 rounded-lg transition-colors"
+                                        >
+                                            {task.status === 'BACKLOG' || task.status === 'THIS_WEEK' ? 'Start' : 'Complete'}
+                                        </button>
+                                    )}
+                                    <ChevronRight className="w-5 h-5 text-[#8a95a3]" />
                                 </div>
                             </div>
-
-                            {/* Column Body */}
-                            <div
-                                className={`bg-slate-900/50 border-x border-b border-slate-700 rounded-b-xl p-3 min-h-[500px] space-y-3 transition-colors ${draggedTask ? 'border-dashed border-2' : ''
-                                    }`}
-                            >
-                                {columnTasks.map((task) => (
-                                    <div
-                                        key={task.id}
-                                        onDragEnd={handleDragEnd}
-                                        className={draggedTask === task.id ? 'opacity-50' : ''}
-                                    >
-                                        <TaskCard
-                                            task={task}
-                                            onDragStart={handleDragStart}
-                                            compact
-                                        />
-                                    </div>
-                                ))}
-
-                                {columnTasks.length === 0 && (
-                                    <div className="text-center py-8 text-slate-500 text-sm">
-                                        Drop tasks here
-                                    </div>
-                                )}
-                            </div>
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
-
-            {/* New Task Modal */}
-            <NewTaskModal
-                isOpen={showNewTaskModal}
-                onClose={() => setShowNewTaskModal(false)}
-                onSave={(task) => {
-                    addTask(task);
-                    setShowNewTaskModal(false);
-                }}
-            />
         </div>
-    );
-}
-
-interface NewTaskModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
-}
-
-function NewTaskModal({ isOpen, onClose, onSave }: NewTaskModalProps) {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [jurisdiction, setJurisdiction] = useState<Jurisdiction>('FL');
-    const [category, setCategory] = useState<TaskCategory>('MOTION');
-    const [priority, setPriority] = useState<Priority>('MEDIUM');
-    const [dueDate, setDueDate] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!title.trim()) return;
-
-        onSave({
-            title: title.trim(),
-            description: description.trim() || undefined,
-            jurisdiction,
-            category,
-            status: 'BACKLOG',
-            priority,
-            dueDate: dueDate || undefined,
-        });
-
-        // Reset form
-        setTitle('');
-        setDescription('');
-        setJurisdiction('FL');
-        setCategory('MOTION');
-        setPriority('MEDIUM');
-        setDueDate('');
-    };
-
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="New Task" size="md">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Title *</label>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter task title..."
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
-                        placeholder="Enter task description..."
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Jurisdiction</label>
-                        <select
-                            value={jurisdiction}
-                            onChange={(e) => setJurisdiction(e.target.value as Jurisdiction)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="FL">Florida</option>
-                            <option value="TN">Tennessee</option>
-                            <option value="IN">Indiana</option>
-                            <option value="CO">Colorado</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Category</label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value as TaskCategory)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="DOMESTICATION">Domestication</option>
-                            <option value="DISCOVERY">Discovery</option>
-                            <option value="MOTION">Motion</option>
-                            <option value="EXECUTION">Execution</option>
-                            <option value="RESEARCH">Research</option>
-                            <option value="COMMUNICATION">Communication</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Priority</label>
-                        <select
-                            value={priority}
-                            onChange={(e) => setPriority(e.target.value as Priority)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Due Date</label>
-                        <input
-                            type="date"
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                    >
-                        Create Task
-                    </button>
-                </div>
-            </form>
-        </Modal>
     );
 }
